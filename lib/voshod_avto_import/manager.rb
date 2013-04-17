@@ -98,12 +98,12 @@ module VoshodAvtoImport
       return if @logger
 
       ::FileUtils.mkdir_p(::VoshodAvtoImport::log_dir) unless ::FileTest.directory?(::VoshodAvtoImport::log_dir)
-      @logger = ::Logger.new(
-        ::File.open(
-          ::File.join(::VoshodAvtoImport::log_dir, "import.log"), ::File::WRONLY | ::File::APPEND | ::File::CREAT
-        ),
-        'weekly'
+      log_file = ::File.open(
+        ::File.join(::AnlasImport::log_dir, "import.log"), 
+        ::File::WRONLY | ::File::APPEND | ::File::CREAT
       )
+      log_file.sync = true
+      @logger = ::Logger.new(log_file, 'weekly')
       @logger
 
     end # create_logger
