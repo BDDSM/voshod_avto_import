@@ -46,10 +46,21 @@ module VoshodAvtoImport
 
       @has_files = true
 
+      Catalog.rebuild! if Catalog.where(:pos.exists => true).size > 7
+      # Catalog.where(:dep_code => nil, :dep_code.exists => false).update_all(:deleted => true)
+      # Catalog.where(:dep_code.ne => nil, :dep_code.exists => true).update_all(:deleted => true)
+      # Item.update_all(:deleted => true)
+      
+      start = Time.now
       # Сортируем по дате последнего доступа по-возрастанию
       files.sort{ |a, b| ::File.new(a).mtime <=> ::File.new(b).atime }.each do |xml_file|
         ::VoshodAvtoImport::Worker.new(xml_file, self).parse
       end # each
+
+      log "На импорт всех файлов затрачено времени: #{ '%0.3f' % (Time.now.to_f - start) } секунд."
+
+      # Catalog.destroy_all(:deleted => true)
+      # Item.destroy_all(:deleted => true)
 
       self
 
@@ -99,7 +110,7 @@ module VoshodAvtoImport
 
       ::FileUtils.mkdir_p(::VoshodAvtoImport::log_dir) unless ::FileTest.directory?(::VoshodAvtoImport::log_dir)
       log_file = ::File.open(
-        ::File.join(::AnlasImport::log_dir, "import.log"), 
+        ::File.join(::VoshodAvtoImport::log_dir, "import.log"), 
         ::File::WRONLY | ::File::APPEND | ::File::CREAT
       )
       log_file.sync = true

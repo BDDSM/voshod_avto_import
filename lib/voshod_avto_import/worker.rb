@@ -7,10 +7,11 @@ module VoshodAvtoImport
 
     def initialize(file, manager)
 
-      @file       = file
-      @ins, @upd  = 0, 0
-      @file_name  = ::File.basename(@file)
-      @manager    = manager
+      @file         = file
+      @ins, @upd    = 0, 0
+      @cins, @cupd  = 0, 0
+      @file_name    = ::File.basename(@file)
+      @manager      = manager
 
     end # new
 
@@ -30,6 +31,8 @@ module VoshodAvtoImport
 
         log "Добавлено товаров: #{@ins}"
         log "Обновлено товаров: #{@upd}"
+        log "Добавлено каталогов #{@cins}:"
+        log "Обновлено каталогов #{@cupd}:"
         log "Затрачено времени: #{ '%0.3f' % (Time.now.to_f - start) } секунд."
         log ""
 
@@ -39,95 +42,164 @@ module VoshodAvtoImport
 
     end # parse_file
 
-    def load(
 
-      code_1c,
-      department,
+    def save_doc(
+      department, 
+      datetime # Time object
+      )
+      
+      dep = Catalog::DEPS[Catalog::REV_DEPS[department]]
+      return unless dep
+      
+      dep_code = Catalog::REV_DEPS[department]
 
-      marking_of_goods,
-      marking_of_goods_manufacturer,
+      if (@root_catalog = ::Catalog.where(:dep_code => dep_code).limit(1).to_a[0])
+        @root_catalog.name        = dep[:name]
+        @root_catalog.updated_at  = datetime
+        @root_catalog.pos         = dep[:pos]
+        @root_catalog.deleted     = false
 
+        if @root_catalog.save
+          @cupd +=1
+          true
+        else
+          false
+        end
+      else
+        @root_catalog = ::Catalog.new
+        @root_catalog.name        = dep[:name]
+        @root_catalog.updated_at  = datetime
+        @root_catalog.pos         = dep[:pos]
+        @root_catalog.deleted     = false
+        @root_catalog.dep_code    = dep_code
+        
+        if @root_catalog.save
+          @cins +=1
+          true
+        else
+          false
+        end
+      end
+      @root_catalog.with({safe:true}).save
+    end
+
+    def save_catalog(
+      id,
       name,
-
-      supplier_purchasing_price,
-      supplier_wholesale_price,
-      purchasing_price,
-
-      available,
-
-      country,
-      country_code,
-
-      storehouse,
-      bar_code,
-
-      weight,
-
-      gtd_number,
-      unit,
-      unit_code
-
+      parent
       )
 
-      # Код поставщика
-      supplier_code = suppliers[department.downcase]
+      internal_id = "#{@root_catalog.dep_code}-#{id}"
+      internal_parent = "#{@root_catalog.dep_code}-#{parent}"
 
-      # Если код поставщика не найден -- завершаем работу
-      if supplier_code.nil?
-        log "[Errors] Поставщик (#{department}) не зарегистрирован в системе. Товар: #{marking_of_goods} -> #{name}"
-        return
+      parent_node = Catalog.where(:key_1c => internal_parent).first
+
+      catalog = nil
+
+      if ( catalog = ::Catalog.where(:key_1c => internal_id).limit(1).to_a[0])
+        catalog.name        = name.xml_unescape
+        catalog.updated_at  = @root_catalog.updated_at
+        catalog.deleted     = false
+        if catalog.save
+          @cupd +=1
+          true
+        else
+          false
+        end
+      else
+        catalog             = ::Catalog.new
+        catalog.key_1c      = internal_id
+        catalog.name        = name.xml_unescape
+        catalog.updated_at  = @root_catalog.updated_at
+        catalog.deleted     = false
+
+        if catalog.save
+          @cins +=1
+          true
+        else
+          false
+        end
       end
 
-      if (item = find_item(supplier_code, code_1c, marking_of_goods))
+      begin
+        if parent_node.nil? || (parent_node.is_a?(Array) && parent_node.empty?)
+          catalog.move_to_child_of(@root_catalog)
+        else
+          catalog.move_to_child_of(parent_node)
 
-        # Если товар по заданным параметрам существует -- обновляем его.
-        update_item(
-          item,
-          code_1c,
-          supplier_code,
-          marking_of_goods,
-          marking_of_goods_manufacturer,
-          name,
-          supplier_purchasing_price,
-          supplier_wholesale_price,
-          purchasing_price,
-          available,
-          country,
-          country_code,
-          storehouse,
-          bar_code,
-          weight,
-          gtd_number,
-          unit,
-          unit_code
-        )
+        end
+      rescue => e
+        log "Exception: #{e.message}"
+        log "internal_parent = #{internal_parent.inspect}"
+        log "original parent = #{catalog.parent.inspect}"
+        log "Moving #{[catalog.name,catalog.key_1c,catalog.id].inspect} to #{[@root_catalog.name,@root_catalog.key_1c,@root_catalog.id].inspect}" if parent_node.nil?
+        log "Moving #{[catalog.name,catalog.key_1c,catalog.id].inspect} to #{[parent_node.name,parent_node.key_1c,parent_node.id].inspect}" unless parent_node.nil?
+      end
+
+    end
+
+    def save_item(
+      id,
+      name,
+      artikul,
+      vendor_artikul,
+      price,
+      count,
+      unit,
+      in_pack,
+      catalog
+      )
+
+      internal_id = "#{@root_catalog.dep_code}-#{id}"
+      catalog_id = catalogs_cache("#{@root_catalog.dep_code}-#{catalog}")
+
+      if (item = ::Item.where(:key_1c => internal_id).limit(1).to_a[0])
+
+        item.name       = name.xml_unescape
+        item.key_1c     = internal_id
+        item.price      = price                     unless price.blank?
+        item.count      = count                     unless count.blank?
+        item.mog        = artikul
+        item.vendor_mog = vendor_artikul
+        item.unit       = unit
+        item.in_pack    = in_pack > 0 ? in_pack : 1
+        item.catalog_id = catalog_id                unless catalog.blank?
+        item.department = @root_catalog.dep_code
+        item.dep_key    = "#{@root_catalog.dep_code}-#{artikul}"
+        item.deleted    = false
+
+        if item.save
+          @upd +=1
+          true
+        else
+          log "[UPDATE] (#{id}-#{key_1c}: #{artikul}) #{item.errors.inspect}"
+          false
+        end
 
       else
+        item = ::Item.new
+        item.key_1c     = internal_id
+        item.name       = name.xml_unescape
+        item.price      = price || 0
+        item.count      = count || 0
+        item.mog        = artikul
+        item.vendor_mog = vendor_artikul
+        item.unit       = unit
+        item.in_pack    = in_pack > 0 ? in_pack : 1
+        item.catalog_id = catalog_id  unless catalog.blank?
+        item.department = @root_catalog.dep_code
+        item.dep_key    = "#{@root_catalog.dep_code}-#{artikul}"
 
-        # Иначе -- создаем новый товар.
-        insert_item(
-          code_1c,
-          supplier_code,
-          marking_of_goods,
-          marking_of_goods_manufacturer,
-          name,
-          supplier_purchasing_price,
-          supplier_wholesale_price,
-          purchasing_price,
-          available,
-          country,
-          country_code,
-          storehouse,
-          bar_code,
-          weight,
-          gtd_number,
-          unit,
-          unit_code
-        )
+        if item.save
+          @ins+=1
+          true
+        else
+          log "[INSERT] (#{id}-#{key_1c}: #{artikul}) #{item.errors.inspect}"
+          false
+        end
 
-      end # if
-
-    end # load
+      end
+    end
 
     def log(msg)
       @manager.log(msg)
@@ -137,7 +209,6 @@ module VoshodAvtoImport
 
     def work_with_file
 
-      suppliers
 
       pt = ::VoshodAvtoImport::XmlParser.new(self)
 
@@ -158,144 +229,17 @@ module VoshodAvtoImport
 
     end # work_with_file
 
-    def suppliers
+    def catalogs_cache(key_1c)
+      @catalogs_cache ||= {}
 
-      return @suppliers if @suppliers
-
-      @suppliers = {}
-
-      ::Supplier.only(:name, :code).each do |suppl|
-        @suppliers[suppl.name.downcase] = suppl.code
-      end
-
-      @suppliers
-
-    end # suppliers
-
-    def find_item(supplier_code, code_1c, marking_of_goods)
-
-      ::Item.where({
-        supplier_code:  supplier_code,
-        code_1c:        code_1c
-      }).limit(1).to_a[0] || \
-      ::Item.where({
-        marking_of_goods: marking_of_goods
-      }).limit(1).to_a[0]
-
-    end # find_item
-
-    def insert_item(
-
-      code_1c,
-      supplier_code,
-      marking_of_goods,
-      marking_of_goods_manufacturer,
-      name,
-      supplier_purchasing_price,
-      supplier_wholesale_price,
-      purchasing_price,
-      available,
-      country,
-      country_code,
-      storehouse,
-      bar_code,
-      weight,
-      gtd_number,
-      unit,
-      unit_code
-
-      )
-
-      item                                = ::Item.new
-
-      item.code_1c                        = code_1c
-      item.supplier_code                  = supplier_code
-      item.marking_of_goods               = marking_of_goods || ""
-      item.marking_of_goods_manufacturer  = marking_of_goods_manufacturer || ""
-      item.name_1c                        = name
-      item.supplier_purchasing_price      = supplier_purchasing_price
-      item.supplier_wholesale_price       = supplier_wholesale_price
-      item.purchasing_price               = purchasing_price
-      item.available                      = available     || 0
-      item.country                        = country       || ""
-      item.country_code                   = country_code  || ""
-      item.storehouse                     = storehouse    || ""
-      item.bar_code                       = bar_code      || ""
-      item.weight                         = weight        || 0
-      item.gtd_number                     = gtd_number    || ""
-      item.unit                           = unit          || ""
-      item.unit_code                      = unit_code     || 0
-
-      item.imported_at                    = ::Time.now.utc
-
-      item.managed                        = false
-      item.public                         = true
-      item.name                           = name
-      item.meta_title                     = name
-
-      if item.save(validate: false)
-        @ins += 1
-        true
+      if id = @catalogs_cache[key_1c]
+        id
       else
-        log "[INSERT] (#{supplier_code}-#{code_1c}: #{marking_of_goods}) #{item.errors.inspect}"
-        false
-      end
-
-    end # insert_item
-
-    def update_item(
-
-      item,
-
-      code_1c,
-      supplier_code,
-      marking_of_goods,
-      marking_of_goods_manufacturer,
-      name,
-      supplier_purchasing_price,
-      supplier_wholesale_price,
-      purchasing_price,
-      available,
-      country,
-      country_code,
-      storehouse,
-      bar_code,
-      weight,
-      gtd_number,
-      unit,
-      unit_code
-
-      )
-
-      item.code_1c                        = code_1c
-      item.supplier_code                  = supplier_code
-      item.marking_of_goods               = marking_of_goods              unless marking_of_goods.blank?
-      item.marking_of_goods_manufacturer  = marking_of_goods_manufacturer unless marking_of_goods_manufacturer.nil?
-      item.name_1c                        = name
-      item.supplier_purchasing_price      = supplier_purchasing_price
-      item.supplier_wholesale_price       = supplier_wholesale_price
-      item.purchasing_price               = purchasing_price
-      item.available                      = available     unless available.nil?
-      item.country                        = country       unless country.nil?
-      item.country_code                   = country_code  unless country_code.nil?
-      item.storehouse                     = storehouse    unless storehouse.nil?
-      item.bar_code                       = bar_code      unless bar_code.nil?
-      item.weight                         = weight        unless weight.nil?
-      item.gtd_number                     = gtd_number    unless gtd_number.nil?
-      item.unit                           = unit          unless unit.nil?
-      item.unit_code                      = unit_code     unless unit_code.nil?
-
-      item.imported_at                    = ::Time.now.utc
-
-      if item.save(validate: false)
-        @upd += 1
-        true
-      else
-        log "[UPDATE] (#{supplier_code}-#{code_1c}: #{marking_of_goods}) #{item.errors.inspect}"
-        false
-      end
-
-    end # update_item
+        id = ::Catalog.where(:key_1c => key_1c).first.try(:id)
+        @catalogs_cache[key_1c] = id
+        id
+      end # if
+    end # catalogs_cache
 
   end # Worker
 

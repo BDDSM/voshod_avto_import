@@ -11,6 +11,11 @@ module VoshodAvtoImport
       @item   = {}
       @level  = 0
       @tags   = {}
+      @partial = false
+      @created_at = nil
+      @catalogs = []
+      @catalog_level = -1
+      @validation_stage = 1
 
     end # initialize
 
@@ -25,16 +30,23 @@ module VoshodAvtoImport
       case name
 
         # 1C 7.7
-        when "nom"          then tag_nom(attrs)
+        when 'doc'          then tag_doc(attrs)
+        when 'catalog'      then tag_catalog(attrs)
+        when 'item'         then tag_item(attrs)
 
         # 1C 8
-        when "ТипЦены"      then start_parse_price
-        when "Предложение"  then start_parse_item
-        when "Цена"         then start_parse_item_price
+        when 'КоммерческаяИнформация' then
+          @created_at = DateTime.iso8601(attrs['ДатаФормирования'])
+          
+        when 'ПакетПредложений','Каталог' then
+          partial = attrs['СодержитТолькоИзменения'] == 'true' if attrs['СодержитТолькоИзменения']
 
-        when "БазоваяЕдиница" then
-          @item["unit_code"] = (attrs["Код"] || "").clean_whitespaces if @start_parse_item
-
+        when 'Группа'       then start_catalog
+        when 'Группы'       then start_catalogs
+        when 'ТипЦены'      then start_parse_price
+        when 'Предложение'  then start_parse_item
+        when 'Товар'        then start_parse_item
+        when 'Цена'         then start_parse_item_price
       end # case
 
     end # start_element
@@ -45,45 +57,55 @@ module VoshodAvtoImport
 
       case name
 
-        when "Ид" then
+        when 'Группа'         then stop_catalog
+        when 'Группы'         then stop_catalogs
+
+        when 'Ид'             then
+          case parent_tag
+            when 'Классификатор'  then
+              # str - внутренний идентификатор в 1С
+              @saver.save_doc(Catalog::DEPS_1V8[@str], @created_at)
+              @validation_stage = 1
+            when 'Группа'         then
+              grub_catalog('id')
+          end
           @price_id  = @str  if for_price?
-          grub_item("code_1c")
-
-        when "Наименование"  then
+          grub_item('code_1c')
+          grub_catalog_for_item
+        when 'Наименование'   then
+          grub_catalog('name')
           @price_name = @str if for_price?
-          grub_item("name")
+          grub_item('name')
+        when 'ИдКаталога'     then
+          if parent_tag == 'ПакетПредложений'
+            @validation_stage = 2
+            @saver.save_doc(Catalog::DEPS_1V8[@str], @created_at)
+          end
+        when 'Отдел'        then grub_item('department')
+        when 'Артикул'      then grub_item('marking_of_goods')
+        when 'Количество'   then grub_item('available')
 
-        when "Отдел"        then grub_item("department")
-        when "Штрихкод"     then grub_item("bar_code")
-        when "Артикул"      then grub_item("marking_of_goods")
+        when 'БазоваяЕдиница' then grub_item('unit')
 
-        when "КодСтранаПроисхождения" then grub_item("country_code")
-        when "СтранаПроисхождения"    then grub_item("country")
-
-        when "НомерГТД"     then grub_item("gtd_number")
-        when "Количество"   then grub_item("available")
-
-        when "БазоваяЕдиница" then grub_item("unit")
-
-        when "ЦенаЗаЕдиницу"  then
+        when 'ЦенаЗаЕдиницу'  then
           @item_price = @str.sub(/\A\s+/, "").sub(/\s+\z/, "").gsub(/(\s){2,}/, '\\1').try(:to_f)  if for_item_price?
 
-        when "ПроцентСкидки"  then
+        when 'ПроцентСкидки'  then
           @item_discount = @str.sub(/\A\s+/, "").sub(/\s+\z/, "").gsub(/(\s){2,}/, '\\1').try(:to_f) if for_item_price?
 
-        when "ИдТипаЦены"   then
+        when 'ИдТипаЦены'   then
           @item_price_id = @str  if for_item_price?
 
-        when "ТипЦены"      then stop_parse_price
-        when "Предложение"  then stop_parse_item
-        when "Цена"         then stop_parse_item_price
+        when 'ТипЦены'              then stop_parse_price
+        when 'Предложение','Товар'  then stop_parse_item
+        when 'Цена'                 then stop_parse_item_price
 
       end # case
 
     end # end_element
 
     def characters(str)
-      @str << str.clean_whitespaces unless str.blank?
+      @str << str.squish unless str.blank?
     end # characters
 
     def error(string)
@@ -94,153 +116,122 @@ module VoshodAvtoImport
       @saver.log "[XML Warnings] #{string}"
     end # warning
 
+    def end_document
+    end
+
     private
 
-    def parent_tag
-      @tags[@level] || ""
+    def parent_tag(index = 0)
+      @tags[@level+0] || ""
     end # parent_tag
 
     def for_item?
-      (@start_parse_item && parent_tag == "Предложение")
+      (@start_parse_item && parent_tag == 'Предложение') || (@start_parse_item && parent_tag == 'Товар')
     end # for_item?
 
+    def group_for_item?
+      @start_parse_item && parent_tag == 'Группы'# && parent_tag(-1) == 'Товар' 
+    end
+
     def for_price?
-      (@parse_price && parent_tag == "ТипЦены")
+      (@parse_price && parent_tag == 'ТипЦены')
     end # for_price?
 
     def for_item_price?
-      (@start_parse_item_price && parent_tag == "Цена")
+      (@start_parse_item_price && parent_tag == 'Цена')
     end # for_item_price?
 
     def grub_item(attr_name)
-      @item[attr_name] = @str if for_item?
+      @item[attr_name] = @str.xml_unescape if for_item?
     end # grub_item
 
-    def save_item(attrs)
+    def grub_catalog(attr_name)
+      @catalogs.last[attr_name] = @str if for_catalog?
+    end
 
-      @saver.load(
-
-        # Идентификатор в 1с (i)
-        # code_1c
-        attrs["id"] || attrs["code_1c"],
-
-        # Отдел (s)
-        attrs["department"],
-
-        # marking_of_goods (s)
-        (attrs["artikul"] || attrs["marking_of_goods"]).try(:clean_whitespaces),
-
-        # marking_of_goods_manufacturer (s)
-        attrs["artikulprod"].try(:clean_whitespaces),
-
-        # name (s)
-        attrs["name"].try(:clean_whitespaces),
-
-        # Цена закупа поставщика
-        # supplier_purchasing_price (f)
-        (attrs["price_zakup"] || attrs["supplier_purchasing_price"]).try(:to_f).try(:round, 2) || 0,
-
-        # Оптовая цена поставщика
-        # supplier_wholesale_price (f)
-        (attrs["price_opt"] || attrs["supplier_wholesale_price"]).try(:to_f).try(:round, 2) || 0,
-
-        # Цена закупа интернет-магазина
-        # purchasing_price (f)
-        (attrs["price_kontr"] || attrs["purchasing_price"]).try(:to_f).try(:round, 2) || 0,
-
-        # Наличие (остатки)
-        # available (i)
-        (attrs["ostatok"] || attrs["available"]).try(:to_i),
-
-        # Страна призводитель
-        # country (s)
-        attrs["country"].try(:gsub, /\-/, ""),
-
-        # Код страны производителя
-        # country_code (i)
-        (attrs["country_kod"] || attrs["country_code"]).try(:to_i),
-
-        # Склад
-        # storehouse (s)
-        attrs["sklad"] || attrs["storehouse"],
-
-        # Штрих-код
-        # bar_code (s)
-        attrs["shtrih_kod"] || attrs["bar_code"],
-
-        # Вес в килограммах
-        # weight (f)
-        (attrs["ves"] || attrs["weight"]).try(:to_i),
-
-        # gtd_number (s)
-        (attrs["number_GTD"] || attrs["gtd_number"]).try(:gsub, /\-/, ""),
-
-        # Название товарной единицы
-        # unit (s)
-        attrs["ed"] || attrs["unit"],
-
-        # Код товарной единицы
-        # unit_code (i)
-        (attrs["okei"] || attrs["unit_code"]).try(:to_i)
-
-      )
-
-    end # save_item
+    def grub_catalog_for_item(attr_name = 'catalog')
+      @item[attr_name] = @str.xml_unescape if group_for_item?
+    end
 
     #
     # 1C 7.7
     #
 
-    def tag_nom(attrs)
-      save_item(attrs) if validate_1c_77(attrs)
-    end # tag_nom
+    def tag_doc(attrs)
+      @created_at = "#{attrs['data']} #{attrs['time']}".to_time2('%d.%m.%y %H:%M')
+      @saver.save_doc(
+        attrs['department'], 
+        @created_at
+        )
+    end
 
-    def validate_1c_77(attrs)
+    def tag_catalog(attrs)
+      save_catalog(attrs) if validate_1c_77_catalog(attrs)
+    end
 
-      return false if attrs.empty? || attrs["isGroupe"].nil? || attrs["isGroupe"].to_i != 0
+    def tag_item(attrs)
+      save_item(attrs) if validate_1c_77_item(attrs)
+    end
 
-      if attrs['id'].blank?
-        @saver.log "[Errors 1C 7.7] Не найден идентификатор у товара: #{attrs['artikul']}"
-        return false
-      end
+    def save_catalog(attrs)
+      @saver.save_catalog(
+        attrs['id'],
+        attrs['name'],
+        attrs['parent']
+        )
+    end
 
-      if attrs['department'].blank?
-        @saver.log "[Errors 1C 7.7] Не найден поставщик у товара: #{attrs['artikul']}"
-        return false
-      end
-
-      if attrs['name'].blank?
-        @saver.log "[Errors 1C 7.7] Не найдено название у товара: #{attrs['artikul']}"
-        return false
-      end
-
-      if attrs['artikul'].blank?
-        @saver.log "[Errors 1C 7.7] Не найден артикул у товара: #{attrs['name']}"
-        return false
-      end
-
-      if attrs['price_zakup'].blank?
-        @saver.log "[Errors 1C 7.7] Не найдена закупочная цена у товара: #{attrs['artikul']} - #{attrs['name']}"
-        return false
-      end
-
-      if attrs['price_opt'].blank?
-        @saver.log "[Errors 1C 7.7] Не найдена оптовая цена у товара: #{attrs['artikul']} - #{attrs['name']}"
-        return false
-      end
-
-      if attrs['price_kontr'].blank?
-        @saver.log "[Errors 1C 7.7] Не найдена цена у товара: #{attrs['artikul']} - #{attrs['name']}"
-        return false
-      end
-
-      true
-
-    end # validate_prices_1c_77
-
+    def save_item(attrs)
+      # p attrs
+      @saver.save_item(
+        attrs['id'] || attrs['code_1c'],
+        attrs['name'],
+        attrs['artikul'] || attrs['marking_of_goods'],
+        attrs['vendor_artikul'] || "",
+        (attrs['price'].try(:to_i) || attrs['supplier_wholesale_price']),
+        (attrs['count'].try(:to_i) || attrs['available'].try(:to_i)),
+        attrs['unit'],
+        attrs['in_pack'].try(:to_i) || 1,
+        attrs['catalog']
+      )
+    end
+    
     #
     # 1C 8
     #
+
+    def start_catalogs
+      @catalog_level += 1 
+      @catalogs.last['level'] = @catalog_level-1 if @catalog_level > 0
+    end
+
+    def start_catalog
+      @catalogs << {}
+    end
+
+    def stop_catalogs
+      if parent_tag == 'Классификатор'
+        @catalogs.each do |c|
+          save_catalog(c)
+        end
+      end
+      @catalog_level -= 1
+    end
+
+    def stop_catalog
+      return if @catalogs.last['level']
+      @catalogs.last['level'] = @catalog_level
+      if @catalog_level > 0
+        possible_parents = @catalogs.select {|sel| sel['level'] == (@catalog_level - 1)}
+        @catalogs.last['parent'] = possible_parents.last['id'] if possible_parents && possible_parents.last['id']
+      elsif @catalog_level == 0
+        @catalogs.last['parent'] = ''
+      end
+    end
+    
+    def for_catalog?
+      parent_tag == "Группа"
+    end
 
     def start_parse_price
       @parse_price = true
@@ -266,7 +257,7 @@ module VoshodAvtoImport
     end # start_parse_item
 
     def stop_parse_item
-
+      # p @item
       save_item(@item) if validate_1c_8(@item)
 
       @start_parse_item = false
@@ -286,7 +277,6 @@ module VoshodAvtoImport
 
           when "Опт" then
             @item["supplier_wholesale_price"] = @item_price
-            @item["purchasing_price"]         = @item_price * (1 - @item_discount*0.01) if @item_discount
 
           when "Закупочная" then
             @item["supplier_purchasing_price"] = @item_price
@@ -328,24 +318,86 @@ module VoshodAvtoImport
         return false
       end
 
-      if attrs['supplier_purchasing_price'].blank?
-        @saver.log "[Errors 1C 8] Не найдена закупочная цена у товара: #{attrs['marking_of_goods']} - #{attrs['name']}"
+      if @validation_stage == 2
+        if attrs['supplier_wholesale_price'].blank?
+          @saver.log "[Errors 1C 8] Не найдена оптовая цена у товара: #{attrs['marking_of_goods']} - #{attrs['name']}"
+          return false
+        end
+
+        if attrs['available'].blank?
+          @saver.log "[Errors 1C 8] Не принадлежит ни одному каталогу: #{attrs['marking_of_goods']} - #{attrs['name']}"
+          return false
+        end
+      end
+
+      if @validation_stage == 1
+        if attrs['catalog'].blank?
+          @saver.log "[Errors 1C 8] Товар не привязан : #{attrs['marking_of_goods']} - #{attrs['name']}"
+          return false
+        end
+      end
+      
+
+      true
+
+    end # validate_1c_8
+    
+    def validate_1c_77_item(attrs)
+
+      return false if attrs.empty?
+
+      if attrs['id'].blank?
+        @saver.log "[Errors 1C 7.7] Не найден идентификатор у товара: #{attrs['artikul']}"
         return false
       end
 
-      if attrs['supplier_wholesale_price'].blank?
-        @saver.log "[Errors 1C 8] Не найдена оптовая цена у товара: #{attrs['marking_of_goods']} - #{attrs['name']}"
+      if attrs['name'].blank?
+        @saver.log "[Errors 1C 7.7] Не найдено название у товара: #{attrs['artikul']}"
         return false
       end
 
-      if attrs['purchasing_price'].blank?
-        @saver.log "[Errors 1C 8] Не найдена цена у товара: #{attrs['marking_of_goods']} - #{attrs['name']}"
+      if attrs['artikul'].blank?
+        @saver.log "[Errors 1C 7.7] Не найден артикул у товара: #{attrs['name']}"
+        return false
+      end
+
+      if attrs['price'].blank?
+        @saver.log "[Errors 1C 7.7] Не найдена цена у товара: #{attrs['artikul']} - #{attrs['name']}"
+        return false
+      end
+
+      if attrs['catalog'].blank?
+        @saver.log "[Errors 1C 7.7] Товар: #{attrs['artikul']} не принадлежит ни одному каталогу"
+        return false
+      end
+
+      if attrs['count'].blank?
+        @saver.log "[Errors 1C 7.7] Неизвестное количество товара: #{attrs['artikul']}"
+        return false
+      end
+
+      if attrs['unit'].blank?
+        @saver.log "[Errors 1C 7.7] Неизвестная товарная единица у товара: #{attrs['artikul']}"
+        return false
+      end
+
+      if attrs['in_pack'].blank?
+        @saver.log "[Errors 1C 7.7] Неизвестное количество в упаковке товара: #{attrs['artikul']}"
         return false
       end
 
       true
 
-    end # validate_1c_8
+    end # validate_1c_77_item
+
+    def validate_1c_77_catalog(attrs)
+      return false if attrs.empty?
+      if attrs['name'].blank?
+        @saver.log "[Errors 1C 7.7] Не найдено имя у каталога: #{attrs['id']}"
+        return false
+      end
+      true
+    end
 
   end # XmlParser
 
