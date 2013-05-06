@@ -17,6 +17,6 @@ ORM:    MondgoID
 
 Copyright (c) 2012 DansingBytes.ru
 
-Authors: redfield (up.redfield@gmail.com), Tyralion (piliaiev@gmail.com)
+Authors: [redfield](mailto:up.redfield@gmail.com), [Tyralion](mailto:piliaiev@gmail.com), [crackedmind](mailto:digital.stream.of.mind@gmail.com)
 
 Copyright (c) 2012 DansingBytes.ru, released under the BSD license
