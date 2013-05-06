@@ -51,7 +51,7 @@ module VoshodAvtoImport
       # Catalog.where(:dep_code.ne => nil, :dep_code.exists => true).update_all(:deleted => true)
       # Item.update_all(:deleted => true)
       
-      start = Time.now
+      start = Time.now.to_f
       # Сортируем по дате последнего доступа по-возрастанию
       files.sort{ |a, b| ::File.new(a).mtime <=> ::File.new(b).atime }.each do |xml_file|
         ::VoshodAvtoImport::Worker.new(xml_file, self).parse
