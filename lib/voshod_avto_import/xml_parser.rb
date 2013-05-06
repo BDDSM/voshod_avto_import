@@ -81,9 +81,14 @@ module VoshodAvtoImport
             @validation_stage = 2
             @saver.save_doc(Catalog::DEPS_1V8[@str], @created_at)
           end
-        when 'Отдел'        then grub_item('department')
-        when 'Артикул'      then grub_item('marking_of_goods')
-        when 'Количество'   then grub_item('available')
+        when 'Отдел'          then grub_item('department')
+        when 'Артикул'        then grub_item('marking_of_goods')
+        when 'АртикулПроизводителя' then 
+          grub_item('vendor_artikul')
+        when 'ДополнительноеОписаниеНоменклатуры'
+          grub_item('additional_info')
+        when 'Производитель'  then grub_item('vendor')
+        when 'Количество'     then grub_item('available')
 
         when 'БазоваяЕдиница' then grub_item('unit')
 
@@ -192,7 +197,9 @@ module VoshodAvtoImport
         (attrs['count'].try(:to_i) || attrs['available'].try(:to_i)),
         attrs['unit'],
         attrs['in_pack'].try(:to_i) || 1,
-        attrs['catalog']
+        attrs['catalog'],
+        attrs['vendor'],
+        attrs['additional_info'] || ""
       )
     end
     
@@ -257,7 +264,6 @@ module VoshodAvtoImport
     end # start_parse_item
 
     def stop_parse_item
-      # p @item
       save_item(@item) if validate_1c_8(@item)
 
       @start_parse_item = false
@@ -325,7 +331,7 @@ module VoshodAvtoImport
         end
 
         if attrs['available'].blank?
-          @saver.log "[Errors 1C 8] Не принадлежит ни одному каталогу: #{attrs['marking_of_goods']} - #{attrs['name']}"
+          @saver.log "[Errors 1C 8] Не найдено количество товара: #{attrs['marking_of_goods']} - #{attrs['name']}"
           return false
         end
       end

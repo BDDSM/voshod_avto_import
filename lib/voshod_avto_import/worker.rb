@@ -147,7 +147,9 @@ module VoshodAvtoImport
       count,
       unit,
       in_pack,
-      catalog
+      catalog,
+      vendor,
+      additional_info
       )
 
       internal_id = "#{@root_catalog.dep_code}-#{id}"
@@ -162,11 +164,13 @@ module VoshodAvtoImport
         item.mog        = artikul
         item.vendor_mog = vendor_artikul
         item.unit       = unit
-        item.in_pack    = in_pack > 0 ? in_pack : 1
+        item.in_pack    = in_pack > 0 ? in_pack : 1 
         item.catalog_id = catalog_id                unless catalog.blank?
         item.department = @root_catalog.dep_code
         item.dep_key    = "#{@root_catalog.dep_code}-#{artikul}"
         item.deleted    = false
+        item.vendor     = vendor
+        item.additional_info = parse_additional_info(additional_info)
 
         if item.save
           @upd +=1
@@ -189,6 +193,8 @@ module VoshodAvtoImport
         item.catalog_id = catalog_id  unless catalog.blank?
         item.department = @root_catalog.dep_code
         item.dep_key    = "#{@root_catalog.dep_code}-#{artikul}"
+        item.vendor     = vendor || ""
+        item.additional_info = parse_additional_info(additional_info)
 
         if item.save
           @ins+=1
@@ -208,7 +214,6 @@ module VoshodAvtoImport
     private
 
     def work_with_file
-
 
       pt = ::VoshodAvtoImport::XmlParser.new(self)
 
@@ -241,6 +246,9 @@ module VoshodAvtoImport
       end # if
     end # catalogs_cache
 
+    def parse_additional_info(info)
+      info.split(/[\n\/]/).map{|el| el.strip}
+    end
   end # Worker
 
 end # VoshodAvtoImport
