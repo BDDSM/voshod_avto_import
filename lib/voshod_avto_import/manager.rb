@@ -5,11 +5,14 @@ module VoshodAvtoImport
   # Запуск обработчика. Отправка отчетов.
   class Manager
 
+    attr_accessor :ins, :upd
+
     def self.run
       new.run
     end # self.run
 
     def initialize
+      @ins, @upd = 0, 0
     end # new
 
     def run
@@ -47,9 +50,6 @@ module VoshodAvtoImport
       @has_files = true
 
       Catalog.rebuild! if Catalog.where(:pos.exists => true).size > 7
-      # Catalog.where(:dep_code => nil, :dep_code.exists => false).update_all(:deleted => true)
-      # Catalog.where(:dep_code.ne => nil, :dep_code.exists => true).update_all(:deleted => true)
-      # Item.update_all(:deleted => true)
       
       start = Time.now.to_f
       # Сортируем по дате последнего доступа по-возрастанию
@@ -57,10 +57,12 @@ module VoshodAvtoImport
         ::VoshodAvtoImport::Worker.new(xml_file, self).parse
       end # each
 
-      log "На импорт всех файлов затрачено времени: #{ '%0.3f' % (Time.now.to_f - start) } секунд."
+      Item.rebuild_replaceable_items!
 
-      # Catalog.destroy_all(:deleted => true)
-      # Item.destroy_all(:deleted => true)
+      log "Всего элементов обновлено: #{@upd}"
+      log "Всего элементов добавлено: #{@ins}"
+      log "На импорт всех файлов затрачено времени: #{ '%0.3f' % (Time.now.to_f - start) } секунд."
+      log ""
 
       self
 

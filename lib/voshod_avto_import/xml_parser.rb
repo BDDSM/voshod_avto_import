@@ -39,7 +39,8 @@ module VoshodAvtoImport
           @created_at = DateTime.iso8601(attrs['ДатаФормирования'])
           
         when 'ПакетПредложений','Каталог' then
-          partial = attrs['СодержитТолькоИзменения'] == 'true' if attrs['СодержитТолькоИзменения']
+          @partial = attrs['СодержитТолькоИзменения'] == 'true' if attrs['СодержитТолькоИзменения']
+          @saver.partial = @partial
 
         when 'Группа'       then start_catalog
         when 'Группы'       then start_catalogs
@@ -192,14 +193,14 @@ module VoshodAvtoImport
         attrs['id'] || attrs['code_1c'],
         attrs['name'],
         attrs['artikul'] || attrs['marking_of_goods'],
-        attrs['vendor_artikul'] || "",
+        attrs['vendor_artikul'],
         (attrs['price'].try(:to_i) || attrs['supplier_wholesale_price']),
         (attrs['count'].try(:to_i) || attrs['available'].try(:to_i)),
         attrs['unit'],
         attrs['in_pack'].try(:to_i) || 1,
         attrs['catalog'],
         attrs['vendor'],
-        attrs['additional_info'] || ""
+        attrs['additional_info'] || nil
       )
     end
     

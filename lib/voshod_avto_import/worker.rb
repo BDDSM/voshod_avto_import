@@ -4,7 +4,7 @@ module VoshodAvtoImport
   # Сохранение данных (добавление новых, обновление сущестующих), полученных
   # при разборе xml-файла.
   class Worker
-
+    attr_writer :partial
     def initialize(file, manager)
 
       @file         = file
@@ -12,7 +12,9 @@ module VoshodAvtoImport
       @cins, @cupd  = 0, 0
       @file_name    = ::File.basename(@file)
       @manager      = manager
-
+      @items_not_deleted    = []
+      @catalogs_not_deleted = []
+      @partial      = false
     end # new
 
     def parse
@@ -25,7 +27,7 @@ module VoshodAvtoImport
 
         log "Файл: #{@file}\n"
 
-        start = Time.now.to_i
+        start = Time.now.to_f
 
         work_with_file
 
@@ -34,6 +36,30 @@ module VoshodAvtoImport
         log "Добавлено каталогов #{@cins}:"
         log "Обновлено каталогов #{@cupd}:"
         log "Затрачено времени: #{ '%0.3f' % (Time.now.to_f - start) } секунд."
+        log ""
+        @manager.ins += @ins
+        @manager.upd += @upd
+
+        start = Time.now.to_f
+
+        begin
+
+          # если содержит только изменения, то не делаем пометку на удаление
+          unless @partial
+            cats = Catalog.where(:_id.nin => @catalogs_not_deleted, :dep_code => @root_catalog.dep_code)
+            items = Item.where(:_id.nin => @items_not_deleted, :department => @root_catalog.dep_code)
+
+            log "Помечено каталогов на удаление: #{cats.count}"
+            log "Помечено товаров на удаление: #{items.count}"
+
+            cats.update_all(:deleted => true)
+            items.update_all(:deleted => true)
+          end
+
+        end
+
+        log "Затрачено времени на 'удаление': #{ '%0.3f' % (Time.now.to_f - start) } секунд."
+        log ""
         log ""
 
       end
@@ -47,10 +73,10 @@ module VoshodAvtoImport
       department, 
       datetime # Time object
       )
-      
+
       dep = Catalog::DEPS[Catalog::REV_DEPS[department]]
       return unless dep
-      
+
       dep_code = Catalog::REV_DEPS[department]
 
       if (@root_catalog = ::Catalog.where(:dep_code => dep_code).limit(1).to_a[0])
@@ -65,6 +91,7 @@ module VoshodAvtoImport
         else
           false
         end
+
       else
         @root_catalog = ::Catalog.new
         @root_catalog.name        = dep[:name]
@@ -72,7 +99,7 @@ module VoshodAvtoImport
         @root_catalog.pos         = dep[:pos]
         @root_catalog.deleted     = false
         @root_catalog.dep_code    = dep_code
-        
+
         if @root_catalog.save
           @cins +=1
           true
@@ -80,8 +107,11 @@ module VoshodAvtoImport
           false
         end
       end
+
       @root_catalog.with({safe:true}).save
-    end
+      @catalogs_not_deleted << @root_catalog._id
+
+    end # save_doc
 
     def save_catalog(
       id,
@@ -98,9 +128,9 @@ module VoshodAvtoImport
 
       if ( catalog = ::Catalog.where(:key_1c => internal_id).limit(1).to_a[0])
         catalog.name        = name.xml_unescape
-        catalog.updated_at  = @root_catalog.updated_at
+        #catalog.updated_at  = @root_catalog.updated_at
         catalog.deleted     = false
-        if catalog.save
+        if catalog.save(validate: false)
           @cupd +=1
           true
         else
@@ -110,16 +140,18 @@ module VoshodAvtoImport
         catalog             = ::Catalog.new
         catalog.key_1c      = internal_id
         catalog.name        = name.xml_unescape
-        catalog.updated_at  = @root_catalog.updated_at
+        #catalog.updated_at  = @root_catalog.updated_at
         catalog.deleted     = false
 
-        if catalog.save
+        if catalog.save(validate: false)
           @cins +=1
           true
         else
           false
         end
       end
+
+      @catalogs_not_deleted << catalog._id
 
       begin
         if parent_node.nil? || (parent_node.is_a?(Array) && parent_node.empty?)
@@ -136,7 +168,7 @@ module VoshodAvtoImport
         log "Moving #{[catalog.name,catalog.key_1c,catalog.id].inspect} to #{[parent_node.name,parent_node.key_1c,parent_node.id].inspect}" unless parent_node.nil?
       end
 
-    end
+    end # save_doc
 
     def save_item(
       id,
@@ -162,7 +194,7 @@ module VoshodAvtoImport
         item.price      = price                     unless price.blank?
         item.count      = count                     unless count.blank?
         item.mog        = artikul
-        item.vendor_mog = vendor_artikul
+        item.vendor_mog = vendor_artikul            unless vendor_artikul.blank?
         item.unit       = unit
         item.in_pack    = in_pack > 0 ? in_pack : 1 
         item.catalog_id = catalog_id                unless catalog.blank?
@@ -172,7 +204,7 @@ module VoshodAvtoImport
         item.vendor     = vendor
         item.additional_info = parse_additional_info(additional_info)
 
-        if item.save
+        if item.save(validate: false)
           @upd +=1
           true
         else
@@ -187,25 +219,26 @@ module VoshodAvtoImport
         item.price      = price || 0
         item.count      = count || 0
         item.mog        = artikul
-        item.vendor_mog = vendor_artikul
+        item.vendor_mog = vendor_artikul          unless vendor_artikul.blank?
         item.unit       = unit
         item.in_pack    = in_pack > 0 ? in_pack : 1
         item.catalog_id = catalog_id  unless catalog.blank?
         item.department = @root_catalog.dep_code
         item.dep_key    = "#{@root_catalog.dep_code}-#{artikul}"
-        item.vendor     = vendor || ""
+        item.vendor     = vendor || nil
         item.additional_info = parse_additional_info(additional_info)
 
-        if item.save
+        if item.save(validate: false)
           @ins+=1
           true
         else
           log "[INSERT] (#{id}-#{key_1c}: #{artikul}) #{item.errors.inspect}"
           false
         end
-
       end
-    end
+
+      @items_not_deleted << item._id
+    end # save_item
 
     def log(msg)
       @manager.log(msg)
@@ -247,8 +280,9 @@ module VoshodAvtoImport
     end # catalogs_cache
 
     def parse_additional_info(info)
-      info.split(/[\n\/]/).map{|el| el.strip}
+      info.split(/[\n\/[:blank:]]/).map{|el| el.strip}.reject {|r| r.blank? } if info
     end
+
   end # Worker
 
 end # VoshodAvtoImport
