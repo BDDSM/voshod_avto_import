@@ -136,7 +136,7 @@ module VoshodAvtoImport
     end # for_item?
 
     def group_for_item?
-      @start_parse_item && parent_tag == 'Группы'# && parent_tag(-1) == 'Товар' 
+      @start_parse_item && parent_tag == 'Группы'
     end
 
     def for_price?
@@ -188,7 +188,6 @@ module VoshodAvtoImport
     end
 
     def save_item(attrs)
-      # p attrs
       @saver.save_item(
         attrs['id'] || attrs['code_1c'],
         attrs['name'],
@@ -311,7 +310,7 @@ module VoshodAvtoImport
       end
 
       if attrs['department'].blank?
-        @saver.log "[Errors 1C 8] Не найден поставщик у товара: #{attrs['marking_of_goods']}"
+        @saver.log "[Errors 1C 8] Не найден отдел у товара: #{attrs['marking_of_goods']}"
         return false
       end
 
