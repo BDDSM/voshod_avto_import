@@ -17,10 +17,6 @@ module VoshodAvtoImport
 
       end # Imp
 
-      if !defined?(::IRB) && !defined?(::Rake) && ::Rails.env.to_s == "production"
-        Imp(::VoshodAvtoImport::proc_name).start
-      end # if
-
     end # initializer
 
   end # Railtie
