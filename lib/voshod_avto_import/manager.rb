@@ -57,8 +57,6 @@ module VoshodAvtoImport
         ::VoshodAvtoImport::Worker.new(xml_file, self).parse
       end # each
 
-      Item.rebuild_replaceable_items!
-
       log "Всего элементов обновлено: #{@upd}"
       log "Всего элементов добавлено: #{@ins}"
       log "На импорт всех файлов затрачено времени: #{ '%0.3f' % (Time.now.to_f - start) } секунд."

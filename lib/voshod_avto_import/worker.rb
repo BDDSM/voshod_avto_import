@@ -187,7 +187,7 @@ module VoshodAvtoImport
       internal_id = "#{@root_catalog.dep_code}-#{id}"
       catalog_id = catalogs_cache("#{@root_catalog.dep_code}-#{catalog}")
 
-      if (item = ::Item.where(:key_1c => internal_id).limit(1).to_a[0])
+      if (item = ::Item.where(:key_1c => internal_id).limit(1).first)
 
         item.name       = name.xml_unescape
         item.key_1c     = internal_id
