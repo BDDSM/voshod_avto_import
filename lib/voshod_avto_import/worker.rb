@@ -256,7 +256,7 @@ module VoshodAvtoImport
       begin
 
         if ::VoshodAvtoImport::backup_dir && ::FileTest.directory?(::VoshodAvtoImport::backup_dir)
-          ::FileUtils.mv(@file, ::VoshodAvtoImport.backup_dir)
+          ::FileUtils.mv(@file, "#{::VoshodAvtoImport.backup_dir}/#{Time.now.strftime("%Y%m%d_%H%M")}_#{@file_name}")
         end
 
       rescue SystemCallError
