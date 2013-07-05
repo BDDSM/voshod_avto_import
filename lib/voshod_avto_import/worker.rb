@@ -195,6 +195,7 @@ module VoshodAvtoImport
         item.count      = count                     unless count.blank?
         item.mog        = artikul
         item.vendor_mog = vendor_artikul            unless vendor_artikul.blank?
+        item.vendor_mog_normalized = vendor_artikul.normalize_artikul unless vendor_artikul.blank?
         item.unit       = unit
         item.in_pack    = in_pack > 0 ? in_pack : 1 
         item.catalog_id = catalog_id                unless catalog.blank?
@@ -220,6 +221,7 @@ module VoshodAvtoImport
         item.count      = count || 0
         item.mog        = artikul
         item.vendor_mog = vendor_artikul          unless vendor_artikul.blank?
+        item.vendor_mog_normalized = vendor_artikul.normalize_artikul unless vendor_artikul.blank?
         item.unit       = unit
         item.in_pack    = in_pack > 0 ? in_pack : 1
         item.catalog_id = catalog_id  unless catalog.blank?
@@ -280,7 +282,7 @@ module VoshodAvtoImport
     end # catalogs_cache
 
     def parse_additional_info(info)
-      info.split(/[\n\/[:blank:]]/).map{|el| el.strip}.reject {|r| r.blank? } if info
+      info.split(/ \/ /).map{|el| el.strip.normalize_artikul} if info
     end
 
   end # Worker
