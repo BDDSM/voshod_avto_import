@@ -54,6 +54,7 @@ module VoshodAvtoImport
 
             cats.update_all(:deleted => true)
             items.update_all(:deleted => true)
+            items.each(&:remove_from_sphinx)
           end
 
         end
@@ -205,7 +206,9 @@ module VoshodAvtoImport
         item.vendor     = vendor
         item.additional_info = parse_additional_info(additional_info)
 
-        if item.save(validate: false)
+        item.crc32_cur = Zlib.crc32(item.additional_info.join(',')) if item.additional_info
+
+        if item.save
           @upd +=1
           true
         else
@@ -230,7 +233,9 @@ module VoshodAvtoImport
         item.vendor     = vendor || nil
         item.additional_info = parse_additional_info(additional_info)
 
-        if item.save(validate: false)
+        item.crc32_cur = Zlib.crc32(item.additional_info.join(',')) if item.additional_info
+
+        if item.save
           @ins+=1
           true
         else

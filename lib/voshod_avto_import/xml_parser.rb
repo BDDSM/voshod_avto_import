@@ -309,10 +309,10 @@ module VoshodAvtoImport
         return false
       end
 
-      if attrs['department'].blank?
-        @saver.log "[Errors 1C 8] Не найден отдел у товара: #{attrs['marking_of_goods']}"
-        return false
-      end
+      # if attrs['department'].blank?
+      #   @saver.log "[Errors 1C 8] Не найден отдел у товара: #{attrs['marking_of_goods']}"
+      #   return false
+      # end
 
       if attrs['name'].blank?
         @saver.log "[Errors 1C 8] Не найдено название у товара: #{attrs['marking_of_goods']}"
