@@ -21,7 +21,7 @@ Gem::Specification.new do |s|
   s.licenses          = ['BSD']
 
   s.add_dependency 'rails', '~> 3.2.13'
-  s.add_dependency 'nokogiri', '~> 1.5.0'
+  s.add_dependency 'nokogiri', '~> 1.6'
   s.add_dependency 'zip'
   s.add_dependency 'logger'
 
