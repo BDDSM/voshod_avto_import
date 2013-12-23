@@ -4,18 +4,24 @@ module VoshodAvtoImport
   # Класс-шаблон по разбору товарных xml-файлов
   class XmlParser < Nokogiri::XML::SAX::Document
 
+    #
+    # Парсер представляет из себя простой конечный автомат.
+    # Разбор выгрузки из 1С8:
+    # 1. Обработка дерева каталогов (Тег "Классификатор")
+    # 2. Обработка товаров (Тег "Товар")
+    #
+    #
     def initialize(saver)
 
-      @saver  = saver
-      @price_types = {}
-      @item   = {}
-      @level  = 0
-      @tags   = {}
-      @partial = false
-      @created_at = nil
-      @catalogs = []
-      @catalog_level = -1
-      @validation_stage = 1
+      @saver            = saver
+      @price_types      = {}
+      @item             = {}
+      @level            = 0
+      @tags             = {}
+      @partial          = false
+      @created_at       = nil
+
+#      @validation_stage = 1
 
     end # initialize
 
@@ -29,25 +35,43 @@ module VoshodAvtoImport
 
       case name
 
+        # 1C 8
+        when 'Классификатор'  then
+          start_parse_catalogs
+
+        when 'Группа'         then
+          up_catalog_level
+          start_parse_catalog
+
+        when 'Группы'         then
+          stop_parse_catalog
+          change_catalog_parent
+
         # 1C 7.7
-        when 'doc'          then tag_doc(attrs)
-        when 'catalog'      then tag_catalog(attrs)
-        when 'item'         then tag_item(attrs)
+        when 'doc'          then
+          start_parse_catalogs
+          tag_doc(attrs)
+
+        when 'catalog'      then
+          tag_catalog(attrs)
+
+#        when 'item'         then tag_item(attrs)
 
         # 1C 8
-        when 'КоммерческаяИнформация' then
-          @created_at = DateTime.iso8601(attrs['ДатаФормирования'])
-          
-        when 'ПакетПредложений','Каталог' then
-          @partial = attrs['СодержитТолькоИзменения'] == 'true' if attrs['СодержитТолькоИзменения']
-          @saver.partial = @partial
+#        when 'КоммерческаяИнформация' then
+#          @created_at = ::DateTime.iso8601(attrs['ДатаФормирования'])
 
-        when 'Группа'       then start_catalog
-        when 'Группы'       then start_catalogs
-        when 'ТипЦены'      then start_parse_price
-        when 'Предложение'  then start_parse_item
-        when 'Товар'        then start_parse_item
-        when 'Цена'         then start_parse_item_price
+#        when 'ПакетПредложений','Каталог' then
+#          @partial = attrs['СодержитТолькоИзменения'] == 'true' if attrs['СодержитТолькоИзменения']
+#          @saver.partial = @partial
+
+#        when 'Группа'       then start_catalog
+#        when 'Группы'       then start_catalogs
+#        when 'ТипЦены'      then start_parse_price
+#        when 'Предложение'  then start_parse_item
+#        when 'Товар'        then start_parse_item
+#        when 'Цена'         then start_parse_item_price
+
       end # case
 
     end # start_element
@@ -58,55 +82,97 @@ module VoshodAvtoImport
 
       case name
 
+        # 1C 8
+        when 'Классификатор'  then
+          stop_parse_catalogs
+
+        when 'Группа'         then
+          stop_parse_catalog
+          down_catalog_level
+
+        when 'Ид'             then
+          grub_catalog(:id)
+
+        when 'Наименование'   then
+
+          grub_catalog(:name)
+          if @catalog_level == 1 && for_catalog?
+            @catalog_dep_code = ::VoshodAvtoImport::CATALOGS_DEPS[@catalog[:name]]
+          end
+
+        # 1C 7.7
+        when 'doc'            then
+          stop_parse_catalogs
+
+      end # case
+
+=begin
+      case name
+
         when 'Группа'         then stop_catalog
         when 'Группы'         then stop_catalogs
 
         when 'Ид'             then
+
           case parent_tag
+
             when 'Классификатор'  then
               # str - внутренний идентификатор в 1С
-              @saver.save_doc(Catalog::DEPS_1V8[@str], @created_at)
+              # @saver.save_doc(::VoshodAvtoImport::DEPS_1V8[@str], @created_at)
+              puts "@saver.doc #{::VoshodAvtoImport::DEPS_1V8[@str]}"
               @validation_stage = 1
+
             when 'Группа'         then
               grub_catalog('id')
+
           end
+
           @price_id  = @str  if for_price?
           grub_item('code_1c')
           grub_catalog_for_item
+
         when 'Наименование'   then
+
           grub_catalog('name')
           @price_name = @str if for_price?
           grub_item('name')
+
         when 'ИдКаталога'     then
+
           if parent_tag == 'ПакетПредложений'
             @validation_stage = 2
-            @saver.save_doc(Catalog::DEPS_1V8[@str], @created_at)
+            @saver.save_doc(::VoshodAvtoImport::DEPS_1V8[@str], @created_at)
           end
+
         when 'Отдел'          then grub_item('department')
         when 'Артикул'        then grub_item('marking_of_goods')
-        when 'АртикулПроизводителя' then 
+
+        when 'АртикулПроизводителя' then
           grub_item('vendor_artikul')
+
         when 'ДополнительноеОписаниеНоменклатуры'
           grub_item('additional_info')
+
         when 'Производитель'  then grub_item('vendor')
         when 'Количество'     then grub_item('available')
 
         when 'БазоваяЕдиница' then grub_item('unit')
 
         when 'ЦенаЗаЕдиницу'  then
-          @item_price = @str.sub(/\A\s+/, "").sub(/\s+\z/, "").gsub(/(\s){2,}/, '\\1').try(:to_f)  if for_item_price?
+          @item_price     = get_price(@str)   if for_item_price?
 
         when 'ПроцентСкидки'  then
-          @item_discount = @str.sub(/\A\s+/, "").sub(/\s+\z/, "").gsub(/(\s){2,}/, '\\1').try(:to_f) if for_item_price?
+          @item_discount  = get_price(@str)   if for_item_price?
 
         when 'ИдТипаЦены'   then
-          @item_price_id = @str  if for_item_price?
+          @item_price_id  = @str              if for_item_price?
 
         when 'ТипЦены'              then stop_parse_price
         when 'Предложение','Товар'  then stop_parse_item
         when 'Цена'                 then stop_parse_item_price
 
       end # case
+=end
 
     end # end_element
 
@@ -123,14 +189,34 @@ module VoshodAvtoImport
     end # warning
 
     def end_document
-    end
+    end # end_document
 
     private
 
-    def parent_tag(index = 0)
+    def get_price(price)
+
+      price.squish.try(:to_f)
+
+#      price.
+#        sub(/\A\s+/, "").
+#        sub(/\s+\z/, "").
+#        gsub(/(\s){2,}/, '\\1').
+#        try(:to_f)
+
+    end # get_price
+
+    def parent_tag
       @tags[@level+0] || ""
     end # parent_tag
 
+    def change_catalog_parent
+
+      return if @start_parse_catalogs != true
+      @catalog_parent_id[@catalog_level] = @catalog[:id]
+
+    end # change_catalog_parent
+
+=begin
     def for_item?
       (@start_parse_item && parent_tag == 'Предложение') || (@start_parse_item && parent_tag == 'Товар')
     end # for_item?
@@ -158,15 +244,45 @@ module VoshodAvtoImport
     def grub_catalog_for_item(attr_name = 'catalog')
       @item[attr_name] = @str.xml_unescape if group_for_item?
     end
+=end
 
     #
     # 1C 7.7
     #
+    def tag_doc(attrs)
 
+      @catalog_tree     = {}
+      @catalog_dep_code = ::VoshodAvtoImport::CATALOGS_DEPS[attrs['department']]
+      @catalog_tree['']  = [{
+
+        dep_code: @catalog_dep_code,
+        name:     (::VoshodAvtoImport::DEPS[@catalog_dep_code] || {})[:name] || 'Неизвестно',
+        id:       "dep"
+
+      }]
+
+    end # tag_doc
+
+    def tag_catalog(attrs)
+
+      parent_id = attrs['parent'].squish
+
+      @catalog              = {}
+      @catalog[:parent_id]  = parent_id.blank? ? "dep" : parent_id
+      @catalog[:dep_code]   = @catalog_dep_code
+      @catalog[:id]         = attrs['id']
+      @catalog[:name]       = attrs['name'].squish
+
+      @catalog_tree[parent_id] ||= []
+      @catalog_tree[parent_id] << @catalog
+
+    end # tag_catalog
+
+=begin
     def tag_doc(attrs)
       @created_at = "#{attrs['data']} #{attrs['time']}".to_time2('%d.%m.%y %H:%M')
       @saver.save_doc(
-        attrs['department'], 
+        attrs['department'],
         @created_at
         )
     end
@@ -202,13 +318,91 @@ module VoshodAvtoImport
         attrs['additional_info'] || nil
       )
     end
-    
+=end
+
     #
     # 1C 8
     #
 
+    def start_parse_catalogs
+
+      return if @start_parse_catalogs == true
+
+      @start_parse_catalogs = true
+
+      # {
+      #
+      #   1 => {
+      #
+      #     id: "e358df46-4212-11e3-bc52-003048f6ad92",
+      #     name: "00.Лузар",
+      #     parent_id: nil
+      #
+      #   }
+      #
+      # }
+      @catalog_tree         = {}
+
+      @catalog_level        = 0
+      @catalog_parent_id    = {}
+      @catalog              = {}
+
+    end # start_parse_catalogs
+
+    def stop_parse_catalogs
+
+      return if @start_parse_catalogs != true
+
+      @start_parse_catalogs = false
+      @catalog_parent_id    = {}
+      @catalog              = {}
+
+      @saver.save_catalogs(@catalog_tree)
+
+    end # stop_parse_catalogs
+
+    def start_parse_catalog
+
+      return if @start_parse_catalogs != true
+
+      @start_parse_catalog = true
+      @catalog             = {}
+
+    end # start_parse_catalog
+
+    def stop_parse_catalog
+
+      return if @start_parse_catalog != true
+
+      @start_parse_catalog  = false
+
+      @catalog[:parent_id]  = @catalog_parent_id[@catalog_level-1]
+      @catalog[:dep_code]   = @catalog_dep_code
+
+      @catalog_tree[@catalog_level] ||= []
+      @catalog_tree[@catalog_level] << @catalog
+
+    end # stop_parse_catalog
+
+    def up_catalog_level
+      @catalog_level += 1
+    end # up_catalog_level
+
+    def down_catalog_level
+      @catalog_level  -= 1
+    end # down_catalog_level
+
+    def grub_catalog(attr_name)
+      @catalog[attr_name] = @str if for_catalog?
+    end # grub_catalog
+
+    def for_catalog?
+      @start_parse_catalog == true && parent_tag == "Группа"
+    end # for_catalog?
+
+=begin
     def start_catalogs
-      @catalog_level += 1 
+      @catalog_level += 1
       @catalogs.last['level'] = @catalog_level-1 if @catalog_level > 0
     end
 
@@ -234,10 +428,6 @@ module VoshodAvtoImport
       elsif @catalog_level == 0
         @catalogs.last['parent'] = ''
       end
-    end
-    
-    def for_catalog?
-      parent_tag == "Группа"
     end
 
     def start_parse_price
@@ -297,12 +487,15 @@ module VoshodAvtoImport
       @start_parse_item_price = false
 
     end # stop_parse_item_price
+=end
+
+    #
+    # Validations
+    #
 
     def validate_1c_8(attrs)
 
-      if attrs.empty?
-        return false
-      end
+      return false if attrs.empty?
 
       if attrs['code_1c'].blank?
         @saver.log "[Errors 1C 8] Не найден идентификатор у товара: #{attrs['marking_of_goods']}"
@@ -342,12 +535,11 @@ module VoshodAvtoImport
           return false
         end
       end
-      
 
       true
 
     end # validate_1c_8
-    
+
     def validate_1c_77_item(attrs)
 
       return false if attrs.empty?
@@ -397,13 +589,17 @@ module VoshodAvtoImport
     end # validate_1c_77_item
 
     def validate_1c_77_catalog(attrs)
+
       return false if attrs.empty?
+
       if attrs['name'].blank?
         @saver.log "[Errors 1C 7.7] Не найдено имя у каталога: #{attrs['id']}"
         return false
       end
+
       true
-    end
+
+    end # validate_1c_77_catalog
 
   end # XmlParser
 

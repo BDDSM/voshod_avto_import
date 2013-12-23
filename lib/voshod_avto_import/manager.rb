@@ -31,6 +31,7 @@ module VoshodAvtoImport
 
       create_logger unless @logger
       @logger.error(msg)
+      puts msg
       msg
 
     end # log
@@ -50,12 +51,17 @@ module VoshodAvtoImport
       @has_files = true
 
       Catalog.rebuild! if Catalog.where(:pos.exists => true).size > 7
-      
+
       start = Time.now.to_f
+
+      ::Catalog.with(safe: true).where(raw: false).delete_all
+
       # Сортируем по дате последнего доступа по-возрастанию
       files.sort{ |a, b| ::File.new(a).mtime <=> ::File.new(b).atime }.each do |xml_file|
         ::VoshodAvtoImport::Worker.new(xml_file, self).parse
       end # each
+
+      ::Catalog.with(safe: true).where(raw: true).update_all({ raw: false })
 
       log "Всего элементов обновлено: #{@upd}"
       log "Всего элементов добавлено: #{@ins}"
@@ -110,7 +116,7 @@ module VoshodAvtoImport
 
       ::FileUtils.mkdir_p(::VoshodAvtoImport::log_dir) unless ::FileTest.directory?(::VoshodAvtoImport::log_dir)
       log_file = ::File.open(
-        ::File.join(::VoshodAvtoImport::log_dir, "import.log"), 
+        ::File.join(::VoshodAvtoImport::log_dir, "import.log"),
         ::File::WRONLY | ::File::APPEND | ::File::CREAT
       )
       log_file.sync = true

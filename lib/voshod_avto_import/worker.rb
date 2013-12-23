@@ -4,7 +4,9 @@ module VoshodAvtoImport
   # Сохранение данных (добавление новых, обновление сущестующих), полученных
   # при разборе xml-файла.
   class Worker
+
     attr_writer :partial
+
     def initialize(file, manager)
 
       @file         = file
@@ -15,6 +17,7 @@ module VoshodAvtoImport
       @items_not_deleted    = []
       @catalogs_not_deleted = []
       @partial      = false
+
     end # new
 
     def parse
@@ -41,7 +44,7 @@ module VoshodAvtoImport
         @manager.upd += @upd
 
         start = Time.now.to_f
-
+=begin
         begin
 
           # если содержит только изменения, то не делаем пометку на удаление
@@ -58,6 +61,7 @@ module VoshodAvtoImport
           end
 
         end
+=end
 
         log "Затрачено времени на 'удаление': #{ '%0.3f' % (Time.now.to_f - start) } секунд."
         log ""
@@ -69,9 +73,96 @@ module VoshodAvtoImport
 
     end # parse_file
 
+    def save_catalogs(catalogs)
+
+      catalogs.each do |key, values|
+
+        values.each do |rc|
+
+          if rc[:id].blank?
+            log "[ERROR] id not found for: #{rc.inspect}"
+            next
+          end
+
+          if rc[:dep_code].nil?
+            log "[ERROR] dep_code not found for: #{rc.inspect}"
+            next
+          end
+
+          rc[:id] = "#{rc[:dep_code]}-#{rc[:id]}"
+
+          if rc[:parent_id].blank?
+            parent_id = nil
+          else
+
+            rc[:parent_id]  = "#{rc[:dep_code]}-#{rc[:parent_id]}"
+            parent_id       = ::Catalog.where(raw: true, key_1c: rc[:parent_id]).first.try(:id)
+
+            if parent_id.nil?
+              log "[ERROR] Not found parent catalog for: #{rc.inspect}"
+              next
+            end
+
+          end
+
+          catalog                = ::Catalog.new
+          catalog.raw            = true
+          catalog.dep_code       = rc[:dep_code]
+          catalog.pos            = key == 1 ? (::VoshodAvtoImport::DEPS[rc[:dep_code]] || {})[:pos] || 0 : 0
+          catalog.name           = key == 1 ? (::VoshodAvtoImport::DEPS[rc[:dep_code]] || rc)[:name] : rc[:name]
+          catalog.key_1c         = rc[:id]
+          catalog.key_1c_parent  = rc[:parent_id]
+          catalog.parent_id      = parent_id
+
+          unless catalog.with(safe: true).save
+            log "[Error] Failed to save catalog: #{rc.inspect}"
+          end
+
+        end # each
+
+      end # each
+
+=begin
+      rc = catalogs.shift
+      dep_code = ::VoshodAvtoImport::CATALOGS_DEPS[rc[:name]]
+
+      return if dep_code.nil?
+
+      root_catalog                = ::Catalog.new
+      root_catalog.raw            = true
+      root_catalog.dep_code       = dep_code
+      root_catalog.pos            = (::VoshodAvtoImport::DEPS[dep_code] || {})[:pos] || 0
+      root_catalog.name           = (::VoshodAvtoImport::DEPS[dep_code] || rc)[:name]
+      root_catalog.key_1c         = rc[:id]
+      root_catalog.key_1c_parent  = rc[:parent_id]
+
+      return unless root_catalog.with(safe: true).save
+
+      catalogs.each do |value|
+
+        ct                = ::Catalog.new
+        ct.raw            = true
+        ct.dep_code       = dep_code
+        ct.pos            = value[:pos] || 0
+        ct.name           = value[:name]
+        ct.key_1c         = value[:id]
+        ct.key_1c_parent  = value[:parent_id]
+        ct.parent_id      = ::Catalog.where(:key_1c_parent => ct.key_1c_parent).first.try(:id) || root_catalog.id
+
+        ct.with(safe: true).save
+
+        puts "#{value}"
+        puts
+
+      end # each
+
+
+=end
+
+    end # save_catalogs
 
     def save_doc(
-      department, 
+      department,
       datetime # Time object
       )
 
@@ -114,6 +205,7 @@ module VoshodAvtoImport
 
     end # save_doc
 
+=begin
     def save_catalog(
       id,
       name,
@@ -170,6 +262,7 @@ module VoshodAvtoImport
       end
 
     end # save_doc
+=end
 
     def save_item(
       id,
@@ -198,7 +291,7 @@ module VoshodAvtoImport
         item.vendor_mog = vendor_artikul            unless vendor_artikul.blank?
         item.vendor_mog_normalized = vendor_artikul.normalize_artikul unless vendor_artikul.blank?
         item.unit       = unit
-        item.in_pack    = in_pack > 0 ? in_pack : 1 
+        item.in_pack    = in_pack > 0 ? in_pack : 1
         item.catalog_id = catalog_id                unless catalog.blank?
         item.department = @root_catalog.dep_code
         item.dep_key    = "#{@root_catalog.dep_code}-#{artikul}"
@@ -260,6 +353,7 @@ module VoshodAvtoImport
       parser = ::Nokogiri::XML::SAX::Parser.new(pt)
       parser.parse_file(@file)
 
+=begin
       begin
 
         if ::VoshodAvtoImport::backup_dir && ::FileTest.directory?(::VoshodAvtoImport::backup_dir)
@@ -271,6 +365,7 @@ module VoshodAvtoImport
       ensure
         ::FileUtils.rm_rf(@file)
       end
+=end
 
     end # work_with_file
 

@@ -9,6 +9,92 @@ module VoshodAvtoImport
 
   extend self
 
+  DEPS = {
+
+    1 => {
+
+      name:     'Аксессуары и электроника',
+      pos:      0,
+      email:    ["el@v-avto.ru"],
+      translit: "Aksessuary i electronika"
+
+    },
+
+    2 => {
+
+      name:     'Автохимия, масла',
+      pos:      4,
+      email:    ["him@v-avto.ru"],
+      translit: "Avtokhimiya, masla"
+
+    },
+
+    3 => {
+
+      name:     'Инструмент',
+      pos:      1,
+      email:    ["kat@v-avto.ru"],
+      translit: "Instrument"
+
+    },
+
+    4 => {
+
+      name:     'Запчасти ВАЗ',
+      pos:      2,
+      email:    ["yana@v-avto.ru", "nadejda@v-avto.ru"],
+      translit: "Zapchasti VAZ"
+
+    },
+
+    5 => {
+
+      name:     'Запчасти ГАЗ, аккумуляторы',
+      pos:      3,
+      email:    ["gaz@v-avto.ru"],
+      translit: "Zapchasti GAZ, akkumulyatory"
+
+    },
+
+    6 => {
+
+      name:     'Запчасти для иномарок',
+      pos:      5,
+      email:    ["nt@v-avto.ru"],
+      translit: "Zapchasti dlya inomarok"
+
+    },
+
+    7 => {
+
+      name:     'Магнитогорск',
+      pos:      6,
+      email:    ["mag@v-avto.ru"],
+      translit: "Magnitogorsk"
+
+    }
+
+  }.freeze # DEPS
+
+  CATALOGS_DEPS = {
+
+    'Аксессуары'            => 1,
+    'Автохимия'             => 2,
+    'Инструмент'            => 3,
+    'АВТО_ВАЗ'              => 4,
+    'НОМЕНКЛАТУРА ГАЗ'      => 5,
+    'НОМЕНКЛАТУРА ИНОМАРОК' => 6,
+    'МАГНИТОГОРСК'          => 7
+
+  }.freeze
+
+  ITEMS_DEPS = {
+
+    'ГАЗ'       => 5,
+    'Иномарки'  => 6
+
+  }.freeze
+
   def proc_name(v = nil)
 
     @proc_name = v unless v.blank?
