@@ -5,24 +5,18 @@ module VoshodAvtoImport
   # при разборе xml-файла.
   class Worker
 
-    attr_writer :partial
-
     def initialize(file, manager)
 
       @file         = file
-      @ins, @upd    = 0, 0
-      @cins, @cupd  = 0, 0
       @file_name    = ::File.basename(@file)
       @manager      = manager
-      @items_not_deleted    = []
-      @catalogs_not_deleted = []
-      @partial      = false
+      @dep_codes    = {}
 
     end # new
 
     def parse
 
-      log "[#{Time.now.strftime('%H:%M:%S %d-%m-%Y')}] Обработка файлов импорта ============================"
+      log "[#{::Time.now.strftime('%H:%M:%S %d-%m-%Y')}] Обработка файлов импорта ============================"
 
       unless @file && ::FileTest.exists?(@file)
         log "Файл не найден: #{@file}"
@@ -30,315 +24,155 @@ module VoshodAvtoImport
 
         log "Файл: #{@file}\n"
 
-        start = Time.now.to_f
+        start = ::Time.now.to_f
 
+        prepare_work
         work_with_file
+        complete_work
 
-        log "Добавлено товаров: #{@ins}"
-        log "Обновлено товаров: #{@upd}"
-        log "Добавлено каталогов #{@cins}:"
-        log "Обновлено каталогов #{@cupd}:"
-        log "Затрачено времени: #{ '%0.3f' % (Time.now.to_f - start) } секунд."
-        log ""
-        @manager.ins += @ins
-        @manager.upd += @upd
-
-        start = Time.now.to_f
-=begin
-        begin
-
-          # если содержит только изменения, то не делаем пометку на удаление
-          unless @partial
-            cats = Catalog.where(:_id.nin => @catalogs_not_deleted, :dep_code => @root_catalog.dep_code)
-            items = Item.where(:_id.nin => @items_not_deleted, :department => @root_catalog.dep_code)
-
-            log "Помечено каталогов на удаление: #{cats.count}"
-            log "Помечено товаров на удаление: #{items.count}"
-
-            cats.update_all(:deleted => true)
-            items.update_all(:deleted => true)
-            items.each(&:remove_from_sphinx)
-          end
-
-        end
-=end
-
-        log "Затрачено времени на 'удаление': #{ '%0.3f' % (Time.now.to_f - start) } секунд."
-        log ""
+        log "Товаров: "
+        log "   добавлено: #{@items_ins}"
+        log "   обновлено: #{@items_upd}"
+        log "Каталогов: "
+        log "   добавлено: #{@catalogs_ins}"
+        log "   обновлено: #{@catalogs_upd}"
+        log "Затрачено времени: #{ '%0.3f' % (::Time.now.to_f - start) } секунд."
         log ""
 
-      end
+      end # if
 
       self
 
     end # parse_file
 
-    def save_catalogs(catalogs)
+    def save_catalog(rc)
 
-      catalogs.each do |key, values|
+      key_1c = "#{rc[:dep_code]}-#{rc[:id]}"
+      @dep_codes[rc[:dep_code]] = true
 
-        values.each do |rc|
+      if (catalog = ::Catalog.where(raw: true, key_1c: key_1c).limit(1).first).nil?
 
-          if rc[:id].blank?
-            log "[ERROR] id not found for: #{rc.inspect}"
-            next
-          end
+        catalog = ::Catalog.new
 
-          if rc[:dep_code].nil?
-            log "[ERROR] dep_code not found for: #{rc.inspect}"
-            next
-          end
-
-          rc[:id] = "#{rc[:dep_code]}-#{rc[:id]}"
-
-          if rc[:parent_id].blank?
-            parent_id = nil
-          else
-
-            rc[:parent_id]  = "#{rc[:dep_code]}-#{rc[:parent_id]}"
-            parent_id       = ::Catalog.where(raw: true, key_1c: rc[:parent_id]).first.try(:id)
-
-            if parent_id.nil?
-              log "[ERROR] Not found parent catalog for: #{rc.inspect}"
-              next
-            end
-
-          end
-
-          catalog                = ::Catalog.new
-          catalog.raw            = true
-          catalog.dep_code       = rc[:dep_code]
-          catalog.pos            = key == 1 ? (::VoshodAvtoImport::DEPS[rc[:dep_code]] || {})[:pos] || 0 : 0
-          catalog.name           = key == 1 ? (::VoshodAvtoImport::DEPS[rc[:dep_code]] || rc)[:name] : rc[:name]
-          catalog.key_1c         = rc[:id]
-          catalog.key_1c_parent  = rc[:parent_id]
-          catalog.parent_id      = parent_id
-
-          unless catalog.with(safe: true).save
-            log "[Error] Failed to save catalog: #{rc.inspect}"
-          end
-
-        end # each
-
-      end # each
-
-=begin
-      rc = catalogs.shift
-      dep_code = ::VoshodAvtoImport::CATALOGS_DEPS[rc[:name]]
-
-      return if dep_code.nil?
-
-      root_catalog                = ::Catalog.new
-      root_catalog.raw            = true
-      root_catalog.dep_code       = dep_code
-      root_catalog.pos            = (::VoshodAvtoImport::DEPS[dep_code] || {})[:pos] || 0
-      root_catalog.name           = (::VoshodAvtoImport::DEPS[dep_code] || rc)[:name]
-      root_catalog.key_1c         = rc[:id]
-      root_catalog.key_1c_parent  = rc[:parent_id]
-
-      return unless root_catalog.with(safe: true).save
-
-      catalogs.each do |value|
-
-        ct                = ::Catalog.new
-        ct.raw            = true
-        ct.dep_code       = dep_code
-        ct.pos            = value[:pos] || 0
-        ct.name           = value[:name]
-        ct.key_1c         = value[:id]
-        ct.key_1c_parent  = value[:parent_id]
-        ct.parent_id      = ::Catalog.where(:key_1c_parent => ct.key_1c_parent).first.try(:id) || root_catalog.id
-
-        ct.with(safe: true).save
-
-        puts "#{value}"
-        puts
-
-      end # each
-
-
-=end
-
-    end # save_catalogs
-
-    def save_doc(
-      department,
-      datetime # Time object
-      )
-
-      dep = Catalog::DEPS[Catalog::REV_DEPS[department]]
-      return unless dep
-
-      dep_code = Catalog::REV_DEPS[department]
-
-      if (@root_catalog = ::Catalog.where(:dep_code => dep_code).limit(1).to_a[0])
-        @root_catalog.name        = dep[:name]
-        @root_catalog.updated_at  = datetime
-        @root_catalog.pos         = dep[:pos]
-        @root_catalog.deleted     = false
-
-        if @root_catalog.save
-          @cupd +=1
-          true
+        if rc[:parent_id].blank?
+          parent_id = nil
         else
-          false
+
+          rc_parent_id  = "#{rc[:dep_code]}-#{rc[:parent_id]}"
+          parent_id     = ::Catalog.where(raw: true, key_1c: rc_parent_id).limit(1).first.try(:id)
+
+          if parent_id.nil?
+            log "[Errors] Не найден родительский каталог: #{rc.inspect}"
+            return
+          end
+
+        end
+
+        catalog.parent_id     = parent_id
+        catalog.key_1c_parent = rc_parent_id
+        catalog.key_1c        = key_1c
+        catalog.raw           = true
+
+      end # if
+
+      catalog.pos             = rc[:pos] || 0
+      catalog.name            = rc[:name]
+      catalog.dep_code        = rc[:dep_code]
+      new_record              = catalog.new_record?
+
+      if catalog.with(safe: true).save
+
+        if new_record
+          @catalogs_ins += 1
+        else
+          @catalogs_upd += 1
         end
 
       else
-        @root_catalog = ::Catalog.new
-        @root_catalog.name        = dep[:name]
-        @root_catalog.updated_at  = datetime
-        @root_catalog.pos         = dep[:pos]
-        @root_catalog.deleted     = false
-        @root_catalog.dep_code    = dep_code
-
-        if @root_catalog.save
-          @cins +=1
-          true
-        else
-          false
-        end
+        log "[Error] Не могу сохранить каталог: #{rc.inspect}"
       end
 
-      @root_catalog.with({safe:true}).save
-      @catalogs_not_deleted << @root_catalog._id
+    end # save_catalog
 
-    end # save_doc
+    def save_item(rc)
 
-=begin
-    def save_catalog(
-      id,
-      name,
-      parent
-      )
+      key_1c      = "#{rc[:dep_code]}-#{rc[:id]}"
+      catalog_1c  = "#{rc[:dep_code]}-#{rc[:catalog_id]}"
 
-      internal_id = "#{@root_catalog.dep_code}-#{id}"
-      internal_parent = "#{@root_catalog.dep_code}-#{parent}"
+      @dep_codes[rc[:dep_code]] = true
 
-      parent_node = Catalog.where(:key_1c => internal_parent).first
+      item            = ::Item.where(:key_1c => key_1c).limit(1).first
+      item            ||= ::Item.new
 
-      catalog = nil
+      item.raw        = item.new_record?
+      item.name       = rc[:name].xml_unescape
+      item.key_1c     = key_1c
+      item.price      = rc[:price]                     unless rc[:price].blank?
+      item.count      = rc[:count]                     unless rc[:count].blank?
+      item.mog        = rc[:mog]
+      item.vendor_mog = rc[:mog_vendor]                unless rc[:mog_vendor].blank?
+      item.unit       = rc[:unit]
+      item.catalog_1c = catalog_1c
+      item.department = rc[:dep_code]
+      item.dep_key    = "#{rc[:dep_code]}-#{rc[:mog]}"
+      item.vendor     = rc[:vendor]                   unless rc[:vendor].blank?
 
-      if ( catalog = ::Catalog.where(:key_1c => internal_id).limit(1).to_a[0])
-        catalog.name        = name.xml_unescape
-        #catalog.updated_at  = @root_catalog.updated_at
-        catalog.deleted     = false
-        if catalog.save(validate: false)
-          @cupd +=1
-          true
+      item.additional_info = parse_additional_info(rc[:additional_info])  unless rc[:additional_info].blank?
+      item.crc32_cur  = Zlib.crc32(item.additional_info.join(','))        if item.additional_info
+
+#      item.in_pack    = rc[:in_pack] > 0 ? in_pack : 1
+#      item.vendor_mog_normalized = vendor_artikul.normalize_artikul unless vendor_artikul.blank?
+
+      new_record      = item.new_record?
+
+      if item.save
+
+        if new_record
+          @items_ins += 1
         else
-          false
-        end
-      else
-        catalog             = ::Catalog.new
-        catalog.key_1c      = internal_id
-        catalog.name        = name.xml_unescape
-        #catalog.updated_at  = @root_catalog.updated_at
-        catalog.deleted     = false
-
-        if catalog.save(validate: false)
-          @cins +=1
-          true
-        else
-          false
-        end
-      end
-
-      @catalogs_not_deleted << catalog._id
-
-      begin
-        if parent_node.nil? || (parent_node.is_a?(Array) && parent_node.empty?)
-          catalog.move_to_child_of(@root_catalog)
-        else
-          catalog.move_to_child_of(parent_node)
-
-        end
-      rescue => e
-        log "Exception: #{e.message}"
-        log "internal_parent = #{internal_parent.inspect}"
-        log "original parent = #{catalog.parent.inspect}"
-        log "Moving #{[catalog.name,catalog.key_1c,catalog.id].inspect} to #{[@root_catalog.name,@root_catalog.key_1c,@root_catalog.id].inspect}" if parent_node.nil?
-        log "Moving #{[catalog.name,catalog.key_1c,catalog.id].inspect} to #{[parent_node.name,parent_node.key_1c,parent_node.id].inspect}" unless parent_node.nil?
-      end
-
-    end # save_doc
-=end
-
-    def save_item(
-      id,
-      name,
-      artikul,
-      vendor_artikul,
-      price,
-      count,
-      unit,
-      in_pack,
-      catalog,
-      vendor,
-      additional_info
-      )
-
-      internal_id = "#{@root_catalog.dep_code}-#{id}"
-      catalog_id = catalogs_cache("#{@root_catalog.dep_code}-#{catalog}")
-
-      if (item = ::Item.where(:key_1c => internal_id).limit(1).first)
-
-        item.name       = name.xml_unescape
-        item.key_1c     = internal_id
-        item.price      = price                     unless price.blank?
-        item.count      = count                     unless count.blank?
-        item.mog        = artikul
-        item.vendor_mog = vendor_artikul            unless vendor_artikul.blank?
-        item.vendor_mog_normalized = vendor_artikul.normalize_artikul unless vendor_artikul.blank?
-        item.unit       = unit
-        item.in_pack    = in_pack > 0 ? in_pack : 1
-        item.catalog_id = catalog_id                unless catalog.blank?
-        item.department = @root_catalog.dep_code
-        item.dep_key    = "#{@root_catalog.dep_code}-#{artikul}"
-        item.deleted    = false
-        item.vendor     = vendor
-        item.additional_info = parse_additional_info(additional_info)
-
-        item.crc32_cur = Zlib.crc32(item.additional_info.join(',')) if item.additional_info
-
-        if item.save
-          @upd +=1
-          true
-        else
-          log "[UPDATE] (#{id}-#{key_1c}: #{artikul}) #{item.errors.inspect}"
-          false
+          @items_upd += 1
         end
 
       else
-        item = ::Item.new
-        item.key_1c     = internal_id
-        item.name       = name.xml_unescape
-        item.price      = price || 0
-        item.count      = count || 0
-        item.mog        = artikul
-        item.vendor_mog = vendor_artikul          unless vendor_artikul.blank?
-        item.vendor_mog_normalized = vendor_artikul.normalize_artikul unless vendor_artikul.blank?
-        item.unit       = unit
-        item.in_pack    = in_pack > 0 ? in_pack : 1
-        item.catalog_id = catalog_id  unless catalog.blank?
-        item.department = @root_catalog.dep_code
-        item.dep_key    = "#{@root_catalog.dep_code}-#{artikul}"
-        item.vendor     = vendor || nil
-        item.additional_info = parse_additional_info(additional_info)
-
-        item.crc32_cur = Zlib.crc32(item.additional_info.join(',')) if item.additional_info
-
-        if item.save
-          @ins+=1
-          true
-        else
-          log "[INSERT] (#{id}-#{key_1c}: #{artikul}) #{item.errors.inspect}"
-          false
-        end
+        log "[#{(new_record ? 'INSERT' : 'UPDATE')}] (#{key_1c}: #{rc[:mog]}) #{item.errors.inspect}"
       end
 
-      @items_not_deleted << item._id
     end # save_item
+
+    def save_item_extend(id, rc)
+
+      key_1c = "#{rc[:dep_code]}-#{id}"
+      @dep_codes[rc[:dep_code]] = true
+
+      item   = ::Item.where(:key_1c => key_1c).limit(1).first
+      item   ||= ::Item.new
+
+      item.key_1c = key_1c
+      item.price  = rc["Опт"]   || 0
+      item.count  = rc[:count]  || 0
+      new_record  = item.new_record?
+
+      if item.save
+
+        if new_record
+          @items_ins += 1
+        else
+          @items_upd += 1
+        end
+
+      else
+        log "[#{(new_record ? 'INSERT' : 'UPDATE')}] (#{key_1c}: #{rc[:mog]}) #{item.errors.inspect}"
+      end
+
+    end # save_item_extend
+
+    def set_partial(val)
+      @partial_update = (val == true)
+    end # set_partial
+
+    def set_price_processing(val)
+      @price_processing = (val == true)
+    end # set_price_processing
 
     def log(msg)
       @manager.log(msg)
@@ -346,14 +180,83 @@ module VoshodAvtoImport
 
     private
 
+    def prepare_work
+
+      @partial_update   = true
+      @items_ins        = 0
+      @items_upd        = 0
+      @catalogs_ins     = 0
+      @catalogs_upd     = 0
+      @price_processing = false
+
+    end # prepare_work
+
+    def complete_work
+
+      # Завершаем работу, если обрабатывали цены
+      return if @price_processing
+
+      deps = @dep_codes.keys
+
+      # Если обновление полное то, удаляем прежние данные:
+      # -- каталоги
+      # -- товары
+      unless @partial_update
+
+        # Удаляем каталоги
+        ::Catalog.
+          with(safe: true).
+          where(raw: false, :dep_code.in => deps).
+          delete_all
+
+        ::Item.
+          with(safe: true).
+          where(raw: false, :department.in => deps).each do |item|
+
+            item.remove_from_sphinx
+            item.delete
+
+        end
+
+        # Закрываем обработку каталогов и товаров
+        ::Catalog.
+          with(safe: true).
+          where(:dep_code.in => deps).
+          update_all({ raw: false })
+
+        ::Item.
+          with(safe: true).
+          where(:department.in => deps).each do |item|
+
+            item.set(:raw, false)
+            item.update_sphinx
+
+        end
+
+      else
+
+        # Удаляем добавленные каталоги
+        ::Catalog.
+          with(safe: true).
+          where(raw: true, :dep_code.in => deps).
+          delete_all
+
+        # Удаляем добавленные товары
+        ::Item.
+          with(safe: true).
+          where(raw: true, :department.in => deps).
+          delete_all
+
+      end # unless
+
+    end # complete_work
+
     def work_with_file
 
-      pt = ::VoshodAvtoImport::XmlParser.new(self)
-
-      parser = ::Nokogiri::XML::SAX::Parser.new(pt)
+      pt      = ::VoshodAvtoImport::XmlParser.new(self)
+      parser  = ::Nokogiri::XML::SAX::Parser.new(pt)
       parser.parse_file(@file)
 
-=begin
       begin
 
         if ::VoshodAvtoImport::backup_dir && ::FileTest.directory?(::VoshodAvtoImport::backup_dir)
@@ -365,25 +268,12 @@ module VoshodAvtoImport
       ensure
         ::FileUtils.rm_rf(@file)
       end
-=end
 
     end # work_with_file
 
-    def catalogs_cache(key_1c)
-      @catalogs_cache ||= {}
-
-      if id = @catalogs_cache[key_1c]
-        id
-      else
-        id = ::Catalog.where(:key_1c => key_1c).first.try(:id)
-        @catalogs_cache[key_1c] = id
-        id
-      end # if
-    end # catalogs_cache
-
     def parse_additional_info(info)
-      info.split(/ \/ /).map{|el| el.strip.normalize_artikul} if info
-    end
+      (info || "").split(/\s\/\s/).map{ |el| el.strip.normalize_artikul }
+    end # parse_additional_info
 
   end # Worker
 
