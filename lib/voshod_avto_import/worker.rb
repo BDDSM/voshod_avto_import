@@ -196,6 +196,9 @@ module VoshodAvtoImport
       # Завершаем работу, если обрабатывали цены
       return if @price_processing
 
+      # Удаляем товары без каталогов
+      ::Item.with(safe: true).where(:catalog_1c => nil).delete_all
+
       deps = @dep_codes.keys
 
       # Если обновление полное то, удаляем прежние данные:
