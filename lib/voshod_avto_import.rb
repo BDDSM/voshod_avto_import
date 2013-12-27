@@ -16,7 +16,7 @@ module VoshodAvtoImport
       name:     'Аксессуары и электроника',
       pos:      0,
       email:    ["el@v-avto.ru"],
-      translit: "Aksessuary i electronika"
+      translit: "Aksessuary_i_electronika"
 
     },
 
@@ -25,7 +25,7 @@ module VoshodAvtoImport
       name:     'Автохимия, масла',
       pos:      4,
       email:    ["him@v-avto.ru"],
-      translit: "Avtokhimiya, masla"
+      translit: "Avtokhimiya_masla"
 
     },
 
@@ -43,7 +43,7 @@ module VoshodAvtoImport
       name:     'Запчасти ВАЗ',
       pos:      2,
       email:    ["yana@v-avto.ru", "nadejda@v-avto.ru"],
-      translit: "Zapchasti VAZ"
+      translit: "Zapchasti_VAZ"
 
     },
 
@@ -52,7 +52,7 @@ module VoshodAvtoImport
       name:     'Запчасти ГАЗ, аккумуляторы',
       pos:      3,
       email:    ["gaz@v-avto.ru"],
-      translit: "Zapchasti GAZ, akkumulyatory"
+      translit: "Zapchasti_GAZ_akkumulyatory"
 
     },
 
@@ -61,7 +61,7 @@ module VoshodAvtoImport
       name:     'Запчасти для иномарок',
       pos:      5,
       email:    ["nt@v-avto.ru"],
-      translit: "Zapchasti dlya inomarok"
+      translit: "Zapchasti_dlya_inomarok"
 
     },
 
