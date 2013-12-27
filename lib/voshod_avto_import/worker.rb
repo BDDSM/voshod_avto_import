@@ -233,6 +233,11 @@ module VoshodAvtoImport
 
         end
 
+        @items_ins        = ::Item.where(:department.in => deps).count
+        @items_upd        = 0
+        @catalogs_ins     = ::Catalog.where(:dep_code.in => deps).count
+        @catalogs_upd     = 0
+
       else
 
         # Удаляем добавленные каталоги
@@ -246,6 +251,9 @@ module VoshodAvtoImport
           with(safe: true).
           where(raw: true, :department.in => deps).
           delete_all
+
+        @items_ins        = 0
+        @catalogs_ins     = 0
 
       end # unless
 
