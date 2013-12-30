@@ -154,6 +154,10 @@ module VoshodAvtoImport
 
   end # wait
 
+  def run
+    ::VoshodAvtoImport::Manager.run
+  end # run
+
 end # VoshodAvtoImport
 
 require 'voshod_avto_import/version'
