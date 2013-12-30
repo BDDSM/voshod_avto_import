@@ -158,6 +158,20 @@ module VoshodAvtoImport
     ::VoshodAvtoImport::Manager.run
   end # run
 
+  def full_update(v = nil)
+
+    @full_update_callback = v if v.is_a?(::Proc)
+    @full_update_callback
+
+  end # full_update
+
+  def partial_update(v = nil)
+
+    @partial_update_callback = v if v.is_a?(::Proc)
+    @partial_update_callback
+
+  end # partial_update
+
 end # VoshodAvtoImport
 
 require 'voshod_avto_import/version'

@@ -241,6 +241,10 @@ module VoshodAvtoImport
         @catalogs_ins     = ::Catalog.where(:dep_code.in => deps).count
         @catalogs_upd     = 0
 
+        #
+        clb = ::VoshodAvtoImport.full_update
+        clb.call(deps) if clb.is_a?(::Proc)
+
       else
 
         # Удаляем добавленные каталоги
@@ -257,6 +261,10 @@ module VoshodAvtoImport
 
         @items_ins        = 0
         @catalogs_ins     = 0
+
+        #
+        clb = ::VoshodAvtoImport.partial_update
+        clb.call(deps) if clb.is_a?(::Proc)
 
       end # unless
 
