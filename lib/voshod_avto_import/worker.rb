@@ -11,6 +11,7 @@ module VoshodAvtoImport
       @file_name    = ::File.basename(@file)
       @manager      = manager
       @dep_codes    = {}
+      @updated_items = []
 
     end # new
 
@@ -101,12 +102,10 @@ module VoshodAvtoImport
 
       @dep_codes[rc[:dep_code]] = true
 
-      item            = ::Item.where(:key_1c => key_1c).limit(1).first
-      item            ||= ::Item.new
+      item            = ::Item.where(raw: false, key_1c: key_1c).first
+      item            ||= ::Item.new(raw: true,  key_1c: key_1c)
 
-      item.raw        = item.new_record?
       item.name       = rc[:name].xml_unescape
-      item.key_1c     = key_1c
       item.price      = rc[:price]                     unless rc[:price].blank?
       item.count      = rc[:count]                     unless rc[:count].blank?
       item.mog        = rc[:mog]
@@ -130,6 +129,7 @@ module VoshodAvtoImport
         if new_record
           @items_ins += 1
         else
+          @updated_items << item.id
           @items_upd += 1
         end
 
@@ -144,10 +144,9 @@ module VoshodAvtoImport
       key_1c = "#{rc[:dep_code]}-#{id}"
       @dep_codes[rc[:dep_code]] = true
 
-      item   = ::Item.where(:key_1c => key_1c).limit(1).first
-      item   ||= ::Item.new
+      item   = ::Item.where(raw: false, key_1c: key_1c).first
+      item   ||= ::Item.new(raw: true,  key_1c: key_1c)
 
-      item.key_1c = key_1c
       item.price  = rc["Опт"]   || 0
       item.count  = rc[:count]  || 0
       new_record  = item.new_record?
@@ -157,6 +156,7 @@ module VoshodAvtoImport
         if new_record
           @items_ins += 1
         else
+          @updated_items << item.id
           @items_upd += 1
         end
 
@@ -214,7 +214,7 @@ module VoshodAvtoImport
 
         ::Item.
           with(safe: true).
-          where(raw: false, :department.in => deps).each do |item|
+          where(raw: false, :department.in => deps, :id.nin => @updated_items).each do |item|
 
             item.remove_from_sphinx
             item.delete
@@ -236,8 +236,6 @@ module VoshodAvtoImport
 
         end
 
-        @items_ins        = ::Item.where(:department.in => deps).count
-        @items_upd        = 0
         @catalogs_ins     = ::Catalog.where(:dep_code.in => deps).count
         @catalogs_upd     = 0
 
@@ -259,14 +257,13 @@ module VoshodAvtoImport
           where(raw: true, :department.in => deps).
           delete_all
 
-        @items_ins        = 0
-        @catalogs_ins     = 0
-
         #
         clb = ::VoshodAvtoImport.partial_update
         clb.call(deps) if clb.is_a?(::Proc)
 
       end # unless
+
+      @updated_items = []
 
     end # complete_work
 
