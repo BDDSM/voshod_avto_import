@@ -116,8 +116,11 @@ module VoshodAvtoImport
       item            = ::Item.where(raw: false, key_1c: key_1c).first
       item            ||= ::Item.new(raw: true,  key_1c: key_1c)
 
+      if (price = rc[:price].try(:to_i) || 0) > 0
+        item.price    = price
+      end
+
       item.name       = rc[:name].xml_unescape
-      item.price      = rc[:price]                     unless rc[:price].blank?
       item.count      = rc[:count]                     unless rc[:count].blank?
       item.mog        = rc[:mog]
       item.vendor_mog = rc[:mog_vendor]                unless rc[:mog_vendor].blank?
