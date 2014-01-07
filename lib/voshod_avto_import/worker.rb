@@ -161,7 +161,10 @@ module VoshodAvtoImport
       item   = ::Item.where(raw: false, key_1c: key_1c).first
       item   ||= ::Item.new(raw: true,  key_1c: key_1c)
 
-      item.price  = rc["Опт"]   || 0
+      if (price = rc["Опт"].try(:to_i) || 0) > 0
+        item.price  = price
+      end
+
       item.count  = rc[:count]  || 0
       new_record  = item.new_record?
 
