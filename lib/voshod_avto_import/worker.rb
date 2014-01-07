@@ -11,7 +11,8 @@ module VoshodAvtoImport
       @file_name    = ::File.basename(@file)
       @manager      = manager
       @dep_codes    = {}
-      @updated_items = []
+      @updated_items    = []
+      @updated_catalogs = []
 
     end # new
 
@@ -30,6 +31,16 @@ module VoshodAvtoImport
         prepare_work
         work_with_file
         complete_work
+
+        departments = @dep_codes.keys.inject([]) { |arr, el|
+          arr << (::VoshodAvtoImport::DEPS[el] || { name: 'Неизвестно' })[:name]
+        }
+
+        if @partial_update
+          log "[Частичное обновление данных] #{departments.join('. ')}."
+        else
+          log "[Полное обновление данных] #{departments.join('. ')}."
+        end
 
         log "Товаров: "
         log "   добавлено: #{@items_ins}"
@@ -51,9 +62,10 @@ module VoshodAvtoImport
       key_1c = "#{rc[:dep_code]}-#{rc[:id]}"
       @dep_codes[rc[:dep_code]] = true
 
-      if (catalog = ::Catalog.where(raw: true, key_1c: key_1c).limit(1).first).nil?
+      catalog = ::Catalog.where(raw: false, key_1c: key_1c).first
+      catalog ||= ::Catalog.new(raw: true, key_1c: key_1c)
 
-        catalog = ::Catalog.new
+      if catalog.new_record?
 
         if rc[:parent_id].blank?
           parent_id = nil
@@ -71,8 +83,6 @@ module VoshodAvtoImport
 
         catalog.parent_id     = parent_id
         catalog.key_1c_parent = rc_parent_id
-        catalog.key_1c        = key_1c
-        catalog.raw           = true
 
       end # if
 
@@ -86,6 +96,7 @@ module VoshodAvtoImport
         if new_record
           @catalogs_ins += 1
         else
+          @updated_catalogs << catalog.id
           @catalogs_upd += 1
         end
 
@@ -209,7 +220,7 @@ module VoshodAvtoImport
         # Удаляем каталоги
         ::Catalog.
           with(safe: true).
-          where(raw: false, :dep_code.in => deps).
+          where(raw: false, :dep_code.in => deps, :id.nin => @updated_catalogs).
           delete_all
 
         ::Item.
@@ -263,7 +274,8 @@ module VoshodAvtoImport
 
       end # unless
 
-      @updated_items = []
+      @updated_items    = []
+      @updated_catalogs = []
 
     end # complete_work
 
