@@ -15,7 +15,7 @@ module VoshodAvtoImport
 
       name:     'Аксессуары и электроника',
       pos:      0,
-      email:    ["el@v-avto.ru"],
+      email:    ["el@v-avto.ru", "ivan@anlas.ru"],
       translit: "Aksessuary_i_electronika"
 
     },
@@ -24,7 +24,7 @@ module VoshodAvtoImport
 
       name:     'Автохимия, масла',
       pos:      4,
-      email:    ["him@v-avto.ru"],
+      email:    ["him@v-avto.ru", "ivan@anlas.ru"],
       translit: "Avtokhimiya_masla"
 
     },
@@ -33,7 +33,7 @@ module VoshodAvtoImport
 
       name:     'Инструмент',
       pos:      1,
-      email:    ["kat@v-avto.ru"],
+      email:    ["kat@v-avto.ru", "ivan@anlas.ru"],
       translit: "Instrument"
 
     },
@@ -42,7 +42,7 @@ module VoshodAvtoImport
 
       name:     'Запчасти ВАЗ',
       pos:      2,
-      email:    ["yana@v-avto.ru", "nadejda@v-avto.ru"],
+      email:    ["yana@v-avto.ru", "nadejda@v-avto.ru", "ivan@anlas.ru"],
       translit: "Zapchasti_VAZ"
 
     },
@@ -51,7 +51,7 @@ module VoshodAvtoImport
 
       name:     'Запчасти ГАЗ, аккумуляторы',
       pos:      3,
-      email:    ["gaz@v-avto.ru"],
+      email:    ["gaz@v-avto.ru", "ivan@anlas.ru"],
       translit: "Zapchasti_GAZ_akkumulyatory"
 
     },
@@ -60,7 +60,7 @@ module VoshodAvtoImport
 
       name:     'Запчасти для иномарок',
       pos:      5,
-      email:    ["nt@v-avto.ru"],
+      email:    ["nt@v-avto.ru", "inomarki@v-avto.ru", "ivan@anlas.ru"],
       translit: "Zapchasti_dlya_inomarok"
 
     },
@@ -69,7 +69,7 @@ module VoshodAvtoImport
 
       name:     'Магнитогорск',
       pos:      6,
-      email:    ["mag@v-avto.ru"],
+      email:    ["mag@v-avto.ru", "ivan@anlas.ru"],
       translit: "Magnitogorsk"
 
     }
