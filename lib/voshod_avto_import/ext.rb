@@ -12,11 +12,11 @@ module VoshodAvtoImport
 
     def escape
 
-      self.
-        gsub(/'/, "\\\\'").
-        gsub(/"/, '\\\\"').
-        gsub(/\n/, "\\n").
-        gsub(/\r/, "\\r")
+      str = self.gsub(/'/, "\\\\'")
+      str.gsub!(/"/, '\\\\"')
+      str.gsub!(/\n/, "\\n")
+      str.gsub!(/\r/, "\\r")
+      str
 
     end # escape
 
@@ -35,6 +35,7 @@ end # VoshodAvtoImport
 class String
   include ::VoshodAvtoImport::StringExt
 end # String
+
 
 class NilClass
   include ::VoshodAvtoImport::NilExt
