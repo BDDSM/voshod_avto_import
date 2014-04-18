@@ -6,47 +6,77 @@ module VoshodAvtoImport
 
     def initialize(saver)
 
-      @saver      = saver
-      @parser     = nil
-
-#      @level              = 0
-#      @tags               = {}
-#      @catalogs_item_map  = {}
+      @saver    = saver
+      @parser   = nil
+      @str      = ""
 
     end # initialize
 
     def start_element(name, attrs = [])
 
+      @str  = ""
       attrs = ::Hash[attrs]
-      if @parser
-        @parser.start_element(name, attrs)
-      else
+
+      # Если парсер не установлен -- пытаемся его выбрать
+      unless @parser
 
         case name
 
           # 1с7.7
-          when 'doc' then get_1c7(name, attrs)
+          when 'doc'              then
+            get_1c7(name, attrs)
+
+          # 1c8 (import)
+          when 'Классификатор'    then
+            init_1c8_import(name, attrs)
+
+          # 1c8 (offers)
+          when 'ПакетПредложений' then
+            init_1c8_offers(name, attrs)
+
+        end # case
+
+      end # unless
+
+      # Если парсер выбран -- работаем.
+      @parser.start_element(name, attrs) if @parser
+
+    end # start_element
+
+    def end_element(name)
+
+      if @parser
+        @parser.end_element(name)
+      else
+
+        case name
+
+          # 1c8 (import)
+          when 'Ид'               then
+            get_1c8_import(name)
+
+          # 1c8 (import)
+          when 'ИдКлассификатора' then
+            get_1c8_offers(name)
 
         end # case
 
       end # if
 
-    end # start_element
+      @str = ""
 
-    def end_element(name)
-      @parser ? @parser.end_element(name) : nil
     end # end_element
 
     def characters(str)
-      @parser ? @parser.characters(str) : nil
+      @parser ? @parser.characters(str) : (@str << str.squish)
     end # characters
 
     def error(str)
-      @parser ? @parser.error(str) : nil
+      @parser.error(str) if @parser
     end # error
 
     def warning(str)
-      @parser ? @parser.warning(str) : nil
+      @parser.warning(str) if @parser
     end # warning
 
     def end_document
@@ -62,17 +92,73 @@ module VoshodAvtoImport
 
       case attrs["department"]
 
-        when 'МАГНИТОГОРСК' then
+        when /МАГНИТОГОРСК/i then
           @parser = ::VoshodAvtoImport::Mag1c7Parser.new(@saver)
 
-        when 'Аксессуары' then
+        when /Аксессуары/i   then
           @parser = ::VoshodAvtoImport::Ask1c7Parser.new(@saver)
 
       end # case
 
-      @parser ? @parser.start_element(name, attrs) : nil
-
     end # get_1c7
+
+    def init_1c8_import(name, attrs)
+      @init_1c8_import = true
+    end # init_1c8_import
+
+    def init_1c8_offers(name, attrs)
+      @init_1c8_offers = true
+    end # init_1c8_offers
+
+    def get_1c8_import(name)
+
+      return unless @init_1c8_import
+      @init_1c8_import = false
+
+      case @str
+
+        # Челябинк
+        when 'db996b9e-3d2f-11e1-84e7-00237d443107' then
+          @parser = ::VoshodAvtoImport::ChelImportParser.new(@saver)
+
+        # Екатеринбург
+        when '95912c90-191b-11de-bee1-00167682119b' then
+          @parser = ::VoshodAvtoImport::EkbImportParser.new(@saver)
+
+      end # case
+
+    end # get_1c8_import
+
+    def get_1c8_offers(name, attrs)
+
+      return unless @init_1c8_offers
+      @init_1c8_offers = false
+
+      case @str
+
+        # Челябинк
+        when 'db996b9e-3d2f-11e1-84e7-00237d443107' then
+          @parser = ::VoshodAvtoImport::ChelOffersParser.new(@saver)
+
+        # Екатеринбург
+        when '95912c90-191b-11de-bee1-00167682119b' then
+          @parser = ::VoshodAvtoImport::EkbImportParser.new(@saver)
+
+      end # case
+
+    end # get_1c8_offers
+
+  end # XmlParser
+
+end # VoshodAvtoImport
+
+=begin
+
+      @level              = 0
+      @tags               = {}
+     @catalogs_item_map  = {}
+
+=end
 
 =begin
       attrs  = ::Hash[attrs]
@@ -763,7 +849,3 @@ module VoshodAvtoImport
 
     end # item_valid?
 =end
-
-  end # XmlParser
-
-end # VoshodAvtoImport

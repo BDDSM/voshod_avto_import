@@ -10,6 +10,15 @@ module VoshodAvtoImport
       @level              = 0
       @tags               = {}
       @catalogs_item_map  = {}
+      @catalog_dep_code   = 7
+      @catalog            = {
+
+        dep_code: @catalog_dep_code,
+        name:     'Магнитогорск',
+        id:       "dep",
+        pos:      6
+
+      }
 
     end # initialize
 
@@ -89,18 +98,7 @@ module VoshodAvtoImport
 
     def tag_doc(attrs)
 
-      @catalog_dep_code = 7
-      @catalog          = {
-
-        dep_code: @catalog_dep_code,
-        name:     'Магнитогорск',
-        id:       "dep",
-        pos:      6
-
-      }
-
       @catalogs_array << @catalog if catalog_valid?
-
       @saver.set_partial(false)
 
     end # tag_doc
