@@ -81,6 +81,8 @@ module VoshodAvtoImport
 
     def end_document
 
+      @parser.end_document if @parser
+
       @parser     = nil
       @department = 0
 
