@@ -1,4 +1,4 @@
-# encoding: UTF-8
+# encoding: utf-8
 module VoshodAvtoImport
 
   # Предварительная обработка выгрузки (распаковка архивов).

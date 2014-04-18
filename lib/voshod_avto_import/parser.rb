@@ -1,4 +1,4 @@
-# encoding: UTF-8
+# encoding: utf-8
 module VoshodAvtoImport
 
   # Класс-шаблон по разбору товарных xml-файлов
@@ -6,15 +6,75 @@ module VoshodAvtoImport
 
     def initialize(saver)
 
-      @saver              = saver
-      @level              = 0
-      @tags               = {}
-      @catalogs_item_map  = {}
+      @saver      = saver
+      @parser     = nil
+
+#      @level              = 0
+#      @tags               = {}
+#      @catalogs_item_map  = {}
 
     end # initialize
 
     def start_element(name, attrs = [])
 
+      attrs = ::Hash[attrs]
+      if @parser
+        @parser.start_element(name, attrs)
+      else
+
+        case name
+
+          # 1с7.7
+          when 'doc' then get_1c7(name, attrs)
+
+        end # case
+
+      end # if
+
+    end # start_element
+
+    def end_element(name)
+      @parser ? @parser.end_element(name) : nil
+    end # end_element
+
+    def characters(str)
+      @parser ? @parser.characters(str) : nil
+    end # characters
+
+    def error(str)
+      @parser ? @parser.error(str) : nil
+    end # error
+
+    def warning(str)
+      @parser ? @parser.warning(str) : nil
+    end # warning
+
+    def end_document
+
+      @parser     = nil
+      @department = 0
+
+    end # end_document
+
+    private
+
+    def get_1c7(name, attrs)
+
+      case attrs["department"]
+
+        when 'МАГНИТОГОРСК' then
+          @parser = ::VoshodAvtoImport::Mag1c7Parser.new(@saver)
+
+        when 'Аксессуары' then
+          @parser = ::VoshodAvtoImport::Ask1c7Parser.new(@saver)
+
+      end # case
+
+      @parser ? @parser.start_element(name, attrs) : nil
+
+    end # get_1c7
+
+=begin
       attrs  = ::Hash[attrs]
       @str   = ""
 
@@ -86,11 +146,10 @@ module VoshodAvtoImport
           tag_item(attrs)
 
       end # case
+=end
 
-    end # start_element
 
-    def end_element(name)
-
+=begin
       @level -= 1
 
       case name
@@ -200,26 +259,9 @@ module VoshodAvtoImport
           save_items_1c77
 
       end # case
+=end
 
-    end # end_element
-
-    def characters(str)
-      @str << str.squish unless str.blank?
-    end # characters
-
-    def error(string)
-      @saver.log "[XML Errors] #{string}"
-    end # error
-
-    def warning(string)
-      @saver.log "[XML Warnings] #{string}"
-    end # warning
-
-    def end_document
-    end # end_document
-
-    private
-
+=begin
     def get_price(price)
       price.squish.try(:to_f)
     end # get_price
@@ -720,6 +762,7 @@ module VoshodAvtoImport
       true
 
     end # item_valid?
+=end
 
   end # XmlParser
 

@@ -72,10 +72,20 @@ module VoshodAvtoImport
       email:    ["mag@v-avto.ru"],
       translit: "Magnitogorsk"
 
+    },
+
+    8 => {
+
+      name:     'Екатеринбург',
+      pos:      7,
+      email:    ["ekb@v-avto.ru"],
+      translit: "Ekaterinburg"
+
     }
 
   }.freeze # DEPS
 
+=begin
   CATALOGS_DEPS = {
 
     'Аксессуары'                => 1,
@@ -117,6 +127,14 @@ module VoshodAvtoImport
     'Иномарки'    => 6
 
   }.freeze
+
+  # Выборка обьектов по классификатору (относится для Екб.)
+  CLASSIFIERS = {
+
+    '95912c90-191b-11de-bee1-00167682119b' => 7
+
+  }.freeze
+=end
 
   def proc_name(v = nil)
 
@@ -201,7 +219,14 @@ require 'voshod_avto_import/version'
 require 'voshod_avto_import/ext'
 require 'voshod_avto_import/mailer'
 
-require 'voshod_avto_import/xml_parser'
+require 'voshod_avto_import/base_parser'
+
+Dir[File.join(File.dirname(__FILE__), '/voshod_avto_import/parsers/**/*.rb')].each do |libs|
+  require libs
+end
+
+require 'voshod_avto_import/parser'
+
 require 'voshod_avto_import/worker'
 require 'voshod_avto_import/manager'
 

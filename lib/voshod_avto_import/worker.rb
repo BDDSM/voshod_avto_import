@@ -1,4 +1,4 @@
-# encoding: UTF-8
+# encoding: utf-8
 module VoshodAvtoImport
 
   # Сохранение данных (добавление новых, обновление сущестующих), полученных

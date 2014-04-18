@@ -1,3 +1,4 @@
+# encoding: utf-8
 require 'rails/railtie'
 
 module VoshodAvtoImport
@@ -10,7 +11,7 @@ module VoshodAvtoImport
 
         loop do
 
-          ::VoshodAvtoImport::Manager.run
+          ::VoshodAvtoImport.run
           sleep ::VoshodAvtoImport::wait
 
         end # loop
