@@ -81,6 +81,9 @@ module VoshodAvtoImport
         when 'Предложение'    then
           stop_parse_item_extend
 
+        when 'Наименование'   then
+          grub_price(:name)
+
         when 'Цена'           then
           stop_parse_item_price
 
@@ -100,6 +103,10 @@ module VoshodAvtoImport
 
     private
 
+    def parent_tag
+      @tags[@level+0] || ""
+    end # parent_tag
+
     def set_price_processing
       @saver.set_price_processing(true)
     end # set_price_processing
@@ -116,7 +123,6 @@ module VoshodAvtoImport
     def stop_parse_prices
 
       return if @start_parse_prices != true
-
       @start_parse_prices = false
 
     end # stop_parse_prices
@@ -212,13 +218,14 @@ module VoshodAvtoImport
 
       price_id = @prices[ @item_price[:id] ]
       return if price_id.nil?
+      return if price_id != 'Опт'
 
-      @item_extend[@item_last_id][ price_id ] = @item_price[:price]
+      @item_extend[@item_last_id][:price] = @item_price[:price]
 
     end # stop_parse_item_price
 
     def for_item_price?
-      @start_parse_item_price == true && parent_tag == "Цена"
+      (@start_parse_item_price == true) && (parent_tag == "Цена")
     end # for_item_price?
 
     def grub_item_price(attr_name)

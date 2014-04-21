@@ -131,7 +131,7 @@ module VoshodAvtoImport
 
     end # get_1c8_import
 
-    def get_1c8_offers(name, attrs)
+    def get_1c8_offers(name)
 
       return unless @init_1c8_offers
       @init_1c8_offers = false
