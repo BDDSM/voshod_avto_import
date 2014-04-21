@@ -144,7 +144,7 @@ module VoshodAvtoImport
 
         # Екатеринбург
         when '95912c90-191b-11de-bee1-00167682119b' then
-          @parser = ::VoshodAvtoImport::EkbImportParser.new(@saver)
+          @parser = ::VoshodAvtoImport::EkbOffersParser.new(@saver)
 
       end # case
 
