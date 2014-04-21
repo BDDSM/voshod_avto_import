@@ -11,14 +11,6 @@ module VoshodAvtoImport
       @tags               = {}
       @catalogs_item_map  = {}
       @catalog_dep_code   = 1
-      @catalog            = {
-
-        dep_code: @catalog_dep_code,
-        name:     'Аксессуары и электроника',
-        id:       "dep",
-        pos:      0
-
-      }
 
     end # initialize
 
@@ -98,7 +90,16 @@ module VoshodAvtoImport
 
     def tag_doc(attrs)
 
-      @catalogs_array << @catalog if catalog_valid?
+      @catalogs_array << {
+
+        dep_code:   @catalog_dep_code,
+        name:       'Аксессуары и электроника',
+        parent_id:  nil,
+        id:         'dep',
+        pos:        0
+
+      }
+
       @saver.set_partial(false)
 
     end # tag_doc
@@ -108,7 +109,7 @@ module VoshodAvtoImport
       parent_id = attrs['parent'].squish
 
       @catalog              = {}
-      @catalog[:parent_id]  = parent_id.blank? ? "dep" : parent_id
+      @catalog[:parent_id]  = parent_id.blank? ? 'dep' : parent_id
       @catalog[:dep_code]   = @catalog_dep_code
       @catalog[:id]         = attrs['id']
       @catalog[:name]       = attrs['name'].squish
