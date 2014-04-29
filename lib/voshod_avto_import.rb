@@ -78,7 +78,7 @@ module VoshodAvtoImport
 
       name:     'Екатеринбург',
       pos:      7,
-      email:    "ivan@anlas.ru", #["ekb@v-avto.ru", "ivan@anlas.ru"],
+      email:    "info@aga-ural.ru", #["ekb@v-avto.ru", "ivan@anlas.ru"],
       translit: "Ekaterinburg"
 
     }
