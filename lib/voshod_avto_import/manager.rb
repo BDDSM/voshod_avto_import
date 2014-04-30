@@ -28,7 +28,6 @@ module VoshodAvtoImport
 
       create_logger unless @logger
       @logger.error(msg)
-      puts msg
       msg
 
     end # log
