@@ -60,7 +60,7 @@ module VoshodAvtoImport
 
       name:     'Запчасти для иномарок',
       pos:      5,
-      email:    ["@v-avto.ru", "inomarki@v-avto.ru"],
+      email:    ["nt@v-avto.ru", "inomarki@v-avto.ru"],
       translit: "Zapchasti_dlya_inomarok"
 
     },
@@ -78,7 +78,7 @@ module VoshodAvtoImport
 
       name:     'Екатеринбург',
       pos:      7,
-      email:    "info@aga-ural.ru", #["ekb@v-avto.ru", "ivan@anlas.ru"],
+      email:    ["info@aga-ural.ru"],
       translit: "Ekaterinburg"
 
     }
