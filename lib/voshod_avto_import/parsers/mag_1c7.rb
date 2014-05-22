@@ -3,6 +3,8 @@ module VoshodAvtoImport
 
   class Mag1c7Parser < ::VoshodAvtoImport::BaseParser
 
+    DEP_CODE = 7.freeze
+
     def initialize(saver)
 
       super(saver)
@@ -10,7 +12,6 @@ module VoshodAvtoImport
       @level              = 0
       @tags               = {}
       @catalogs_item_map  = {}
-      @catalog_dep_code   = 7
 
     end # initialize
 
@@ -104,16 +105,16 @@ module VoshodAvtoImport
 
       @catalog  = {
 
-        key_1c:   "#{@catalog_dep_code}-#{attrs['id'].squish}",
-        dep_code: @catalog_dep_code,
+        key_1c:   "#{DEP_CODE}-#{attrs['id'].squish}",
+        dep_code: DEP_CODE,
         name:     attrs['name'].squish,
 
       }
 
       if (parent_id = attrs['parent'].squish).blank?
-        @catalog[:key_1c_parent] = "#{@catalog_dep_code}-mag"
+        @catalog[:key_1c_parent] = "mag"
       else
-        @catalog[:key_1c_parent] = "#{@catalog_dep_code}-#{parent_id}"
+        @catalog[:key_1c_parent] = "#{DEP_CODE}-#{parent_id}"
       end
 
       @catalogs_item_map[@catalog[:id]] = @catalog[:dep_code]
@@ -136,11 +137,11 @@ module VoshodAvtoImport
       }
 
       unless (item_id = attrs['id'].squish).blank?
-        @item[:key_1c] = "#{@catalog_dep_code}-#{item_id}"
+        @item[:key_1c] = "#{DEP_CODE}-#{item_id}"
       end
 
       unless (catalog_id = attrs['catalog'].squish).blank?
-        @item[:catalog_1c] = "#{@catalog_dep_code}-#{catalog_id}"
+        @item[:catalog_1c] = "#{DEP_CODE}-#{catalog_id}"
       end
 
       (@items ||= []) << @item if item_valid?
