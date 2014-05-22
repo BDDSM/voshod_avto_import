@@ -32,7 +32,9 @@ module VoshodAvtoImport
         work_with_file
         complete_work
 
-        departments = @dep_codes.inject([]) { |arr, el|
+        deps = @dep_codes.delete_if{ |el| el.nil? }
+
+        departments = deps.inject([]) { |arr, el|
           arr << (::VoshodAvtoImport::DEPS[el] || { name: 'Неизвестно' })[:name]
         }
 
@@ -216,7 +218,7 @@ module VoshodAvtoImport
       # Удаляем товары без отделов
       ::Item.with(safe: true).where(:department => nil).delete_all
 
-      deps = @dep_codes.to_a
+      deps = @dep_codes.delete_if{ |el| el.nil? }.to_a
 
       # Если обновление полное то, удаляем прежние данные:
       # -- каталоги
