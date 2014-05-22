@@ -32,8 +32,11 @@ module VoshodAvtoImport
         when 'ТипЦены'        then
           start_parse_price
 
+        when 'Предложения'    then
+          start_parse_items
+
         when 'Предложение'    then
-          start_parse_item_extend
+          start_parse_item
 
         when 'Цена'           then
           start_parse_item_price
@@ -51,7 +54,7 @@ module VoshodAvtoImport
         # 1C (общее)
         when 'Ид'             then
           grub_price(:id)
-          grub_item_id_for_extend
+          grub_item(:id)
 
         # 1C 8 (цены)
         when 'ТипыЦен'        then
@@ -62,10 +65,17 @@ module VoshodAvtoImport
 
         # 1С 8 (цены для товаров)
         when 'Предложение'    then
-          stop_parse_item_extend
+          stop_parse_item
+
+        when 'Предложения'    then
+          stop_parse_items
 
         when 'Наименование'   then
           grub_price(:name)
+          grub_item(:name)
+
+        when 'Артикул' then
+          grub_item(:mog)
 
         when 'Цена'           then
           stop_parse_item_price
@@ -78,7 +88,7 @@ module VoshodAvtoImport
 
         # 1C 8 (количество товарв)
         when 'Количество'     then
-          grub_item_count_fot_extend
+          grub_item(:count)
 
       end # case
 
@@ -136,50 +146,65 @@ module VoshodAvtoImport
       @price[attr_name] = @str.squish if for_price?
     end # grub_price
 
-    def start_parse_item_extend
+    def start_parse_items
 
-      return if @start_parse_item_extend == true
+      return if @start_parse_items == true
 
-      @start_parse_item_extend = true
-      @item_extend             = {}
+      @start_parse_items  = true
+      @items              = []
 
-    end # start_parse_item_extend
+    end # start_parse_items
 
-    def stop_parse_item_extend
+    def stop_parse_items
 
-      return if @start_parse_item_extend != true
+      return if @start_parse_items != true
 
-      @start_parse_item_extend = false
+      @start_parse_items = false
 
-      @item_extend.each do |id, values|
-        @saver.save_item_extend(id, values)
+      @items.each do |item|
+        @saver.save_item_extend(item)
       end
 
-    end # stop_parse_item_extend
+      @items = []
 
-    def grub_item_id_for_extend
+    end # stop_parse_items
 
-      if @start_parse_item_extend == true && parent_tag == "Предложение"
+    def start_parse_item
 
-        @item_last_id               = @str.squish
-        @item_extend[@item_last_id] = {}
+      return if @start_parse_items != true
 
+      @start_parse_item = true
+      @item             = { price: 0 }
+
+    end # start_parse_item
+
+    def stop_parse_item
+
+      return if @start_parse_item != true
+
+      @start_parse_item = false
+
+      @item[:dep_code]  = DEP_CODE
+
+      unless (item_id = @item[:id].squish).blank?
+        @item[:key_1c] = "#{DEP_CODE}-#{item_id}"
       end
 
-    end # grub_item_id_for_extend
+      @items << @item if item_valid?(false)
 
-    def grub_item_count_fot_extend
+    end # stop_parse_item
 
-      if @start_parse_item_extend == true && parent_tag == "Предложение"
-        @item_extend[@item_last_id][:dep_code]  = DEP_CODE
-        @item_extend[@item_last_id][:count]     = @str.squish
-      end
+    def for_item?
+      @start_parse_item == true && parent_tag == "Предложение"
+    end # for_item?
 
-    end # grub_item_count_fot_extend
+    def grub_item(attr_name)
+      @item[attr_name] = @str.squish if for_item?
+    end # grub_item
 
     def start_parse_item_price
 
-      return if @start_parse_item_extend != true
+      return if @start_parse_item != true
 
       @start_parse_item_price = true
       @item_price             = {}
@@ -195,7 +220,7 @@ module VoshodAvtoImport
       price_id = @prices[ @item_price[:id] ]
       return if price_id.nil? || !['Ц4 - МЕЛКИЙ ОПТ'].include?(price_id)
 
-      @item_extend[@item_last_id][:price] = @item_price[:price]
+      @item[:price] = @item_price[:price]
 
     end # stop_parse_item_price
 

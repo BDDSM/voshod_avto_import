@@ -303,7 +303,7 @@ module VoshodAvtoImport
     end # for_item?
 
     def grub_item(attr_name)
-      @item[attr_name] = @str if for_item?
+      @item[attr_name] = @str.squish if for_item?
     end # grub_item
 
     def id_group_for_item?

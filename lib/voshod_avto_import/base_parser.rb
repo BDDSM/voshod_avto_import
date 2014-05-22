@@ -47,7 +47,7 @@ module VoshodAvtoImport
 
     end # catalog_valid?
 
-    def item_valid?
+    def item_valid?(strong = true)
 
       return false if @item.empty?
 
@@ -56,7 +56,7 @@ module VoshodAvtoImport
         return false
       end
 
-      if @item[:name].blank?
+      if (strong == true && @item[:name].blank?)
         @saver.log "[Errors] Не найдено название у товара: #{@item.inspect}"
         return false
       end
@@ -66,7 +66,7 @@ module VoshodAvtoImport
         return false
       end
 
-      if @item[:catalog_1c].blank?
+      if (strong == true && @item[:catalog_1c].blank?)
         @saver.log "[Errors] Не найден каталог у товара: #{@item.inspect}"
         return false
       end

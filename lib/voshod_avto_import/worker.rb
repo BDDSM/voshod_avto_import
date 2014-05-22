@@ -115,7 +115,7 @@ module VoshodAvtoImport
       end
 
       item.name       = rc[:name].xml_unescape
-      item.key_1c     = rc[:key_1c]                     unless rc[:key_1c].blank?
+      item.key_1c     = rc[:key_1c]
       item.count      = rc[:count]                      unless rc[:count].blank?
       item.mog        = rc[:mog]
       item.vendor_mog = rc[:mog_vendor]                 unless rc[:mog_vendor].blank?
@@ -146,7 +146,7 @@ module VoshodAvtoImport
 
     end # save_item
 
-    def save_item_extend(id, rc)
+    def save_item_extend(rc)
 
       @dep_codes << rc[:dep_code]
 
@@ -157,8 +157,12 @@ module VoshodAvtoImport
         item.price  = price
       end
 
-      item.count  = rc[:count]  || 0
-      new_record  = item.new_record?
+      item.count      = rc[:count] || 0
+      item.name       = rc[:name]
+      item.mog        = rc[:mog]
+      item.department = rc[:dep_code]
+      item.dep_key    = "#{rc[:dep_code]}-#{rc[:mog]}"
+      new_record      = item.new_record?
 
       if item.save
 
