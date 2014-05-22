@@ -88,7 +88,7 @@ module VoshodAvtoImport
 
       @catalogs_array << {
 
-        key_1c:         "#{@catalog_dep_code}-mag",
+        key_1c:         "mag",
         key_1c_parent:  nil,
         dep_code:       0,
         name:           "Магнитогорск",
