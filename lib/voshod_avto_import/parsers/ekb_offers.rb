@@ -63,7 +63,6 @@ module VoshodAvtoImport
         when 'ТипЦены'        then
           stop_parse_price
 
-        # 1С 8 (цены для товаров)
         when 'Предложение'    then
           stop_parse_item
 
