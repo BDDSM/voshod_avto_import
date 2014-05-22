@@ -38,13 +38,8 @@ module VoshodAvtoImport
 
       return false if @catalog.empty?
 
-      if @catalog[:id].blank?
+      if @catalog[:key_1c].blank?
         @saver.log "[Errors] Не найден идентификатор у каталога: #{@catalog.inspect}"
-        return false
-      end
-
-      if @catalog[:dep_code].blank?
-        @saver.log "[Errors] Не найден код отдела у каталога: #{@catalog.inspect}"
         return false
       end
 
@@ -56,7 +51,7 @@ module VoshodAvtoImport
 
       return false if @item.empty?
 
-      if @item[:id].blank?
+      if @item[:key_1c].blank?
         @saver.log "[Errors] Не найден идентификатор у товара: #{@item.inspect}"
         return false
       end
@@ -71,8 +66,13 @@ module VoshodAvtoImport
         return false
       end
 
-      if @item[:catalog_id].blank?
+      if @item[:catalog_1c].blank?
         @saver.log "[Errors] Не найден каталог у товара: #{@item.inspect}"
+        return false
+      end
+
+      if @item[:dep_code].blank?
+        @saver.log "[Errors] Не найден номер отдела: #{@item.inspect}"
         return false
       end
 

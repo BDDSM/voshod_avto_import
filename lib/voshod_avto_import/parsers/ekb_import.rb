@@ -11,7 +11,6 @@ module VoshodAvtoImport
 
       @level              = 0
       @tags               = {}
-      @catalogs_item_map  = {}
 
       start_parse_catalogs
 
@@ -167,21 +166,20 @@ module VoshodAvtoImport
       return if @start_parse_catalogs == true
 
       @start_parse_catalogs = true
-
       reset_datas!
 
       @catalogs_array << {
 
-        parent_id:  nil,
-        id:         "dep",
-        dep_code:   DEP_CODE,
-        name:       "Екатеринбург",
-        pos:        7
+        id:             "ekb",
+        key_1c:         "ekb",
+        key_1c_parent:  nil,
+        dep_code:       DEP_CODE,
+        name:           "Екатеринбург",
+        pos:            0
 
       }
 
-      @catalog_parent_id[0] = "dep"
-      @catalogs_item_map["dep"] = @catalog[:dep_code]
+      @catalog_parent_id[0] = "ekb"
 
     end # start_parse_catalogs
 
@@ -214,10 +212,8 @@ module VoshodAvtoImport
 
       @start_parse_catalog = false
 
-      @catalog[:parent_id]  = @catalog_parent_id[@catalog_level-1] || "dep"
-      @catalog[:dep_code]   = DEP_CODE
-
-      @catalogs_item_map[@catalog[:id]] = @catalog[:dep_code]
+      @catalog[:key_1c]         = "#{DEP_CODE}-#{@catalog[:id]}"
+      @catalog[:key_1c_parent]  = @catalog_parent_id[@catalog_level-1] || "ekb"
 
       @catalogs_array << @catalog if catalog_valid?
 
@@ -286,8 +282,18 @@ module VoshodAvtoImport
       return if @start_parse_item != true
 
       @start_parse_item = false
+      @item[:dep_code]  = DEP_CODE
 
-      @item[:dep_code]  = @catalogs_item_map[@item[:catalog_id]]
+      unless (catalog_id = @item[:catalog_id].try(:squish)).nil?
+
+        @item[:catalog_1c] = "#{DEP_CODE}-#{catalog_id}"
+
+        unless (item_id = @item[:id].squish).blank?
+          @item[:key_1c] = "#{DEP_CODE}-#{item_id}"
+        end
+
+      end
+
       @items << @item if item_valid?
 
     end # stop_parse_item

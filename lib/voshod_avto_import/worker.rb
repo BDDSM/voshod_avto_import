@@ -7,10 +7,10 @@ module VoshodAvtoImport
 
     def initialize(file, manager)
 
-      @file         = file
-      @file_name    = ::File.basename(@file)
-      @manager      = manager
-      @dep_codes    = {}
+      @file             = file
+      @file_name        = ::File.basename(@file)
+      @manager          = manager
+      @dep_codes        = ::Set.new
       @updated_items    = []
       @updated_catalogs = []
 
@@ -32,7 +32,7 @@ module VoshodAvtoImport
         work_with_file
         complete_work
 
-        departments = @dep_codes.keys.inject([]) { |arr, el|
+        departments = @dep_codes.inject([]) { |arr, el|
           arr << (::VoshodAvtoImport::DEPS[el] || { name: 'Неизвестно' })[:name]
         }
 
@@ -59,44 +59,41 @@ module VoshodAvtoImport
 
     def save_catalog(rc)
 
-      key_1c = "#{rc[:dep_code]}-#{rc[:id]}"
-      @dep_codes[rc[:dep_code]] = true
+      @dep_codes << rc[:dep_code]
 
-      catalog = ::Catalog.where(raw: false, key_1c: key_1c).first
-      catalog ||= ::Catalog.new(raw: true, key_1c: key_1c)
+      catalog = ::Catalog.where(raw: false, key_1c: rc[:key_1c]).first
+      catalog ||= ::Catalog.new(raw: true, key_1c: rc[:key_1c])
 
-      if catalog.new_record?
+      # Для корневых каталогов
+      if rc[:key_1c_parent].nil?
+        parent_id    = nil
+      else
 
-        if rc[:parent_id].blank?
-          parent_id = nil
-        else
+      # Обычные каталоги
+        parent_id     = ::Catalog.where(raw: true,  key_1c: rc[:key_1c_parent]).first.try(:id)
+        parent_id   ||= ::Catalog.where(raw: false, key_1c: rc[:key_1c_parent]).first.try(:id)
 
-          rc_parent_id  = "#{rc[:dep_code]}-#{rc[:parent_id]}"
-          parent_id     = ::Catalog.where(raw: true, key_1c: rc_parent_id).limit(1).first.try(:id)
-
-          if parent_id.nil?
-            log "[Errors] Не найден родительский каталог: #{rc.inspect}"
-            return
-          end
-
+        if parent_id.nil?
+          log "[Errors] Не найден родительский каталог: #{rc.inspect}"
+          return
         end
-
-        catalog.parent_id     = parent_id
-        catalog.key_1c_parent = rc_parent_id
 
       end # if
 
       catalog.pos             = rc[:pos] || 0
       catalog.name            = rc[:name]
       catalog.dep_code        = rc[:dep_code]
+      catalog.key_1c_parent   = rc[:key_1c_parent]
+      catalog.parent_id       = parent_id
       new_record              = catalog.new_record?
 
       if catalog.with(safe: true).save
 
+        @updated_catalogs << catalog.id
+
         if new_record
           @catalogs_ins += 1
         else
-          @updated_catalogs << catalog.id
           @catalogs_upd += 1
         end
 
@@ -108,58 +105,53 @@ module VoshodAvtoImport
 
     def save_item(rc)
 
-      key_1c      = "#{rc[:dep_code]}-#{rc[:id]}"
-      catalog_1c  = "#{rc[:dep_code]}-#{rc[:catalog_id]}"
+      @dep_codes << rc[:dep_code]
 
-      @dep_codes[rc[:dep_code]] = true
-
-      item            = ::Item.where(raw: false, key_1c: key_1c).first
-      item            ||= ::Item.new(raw: true,  key_1c: key_1c)
+      item  = ::Item.where(raw: false, key_1c: rc[:key_1c]).first
+      item  ||= ::Item.new(raw: true,  key_1c: rc[:key_1c])
 
       if (price = rc[:price].try(:to_i) || 0) > 0
         item.price    = price
       end
 
       item.name       = rc[:name].xml_unescape
-      item.count      = rc[:count]                     unless rc[:count].blank?
+      item.key_1c     = rc[:key_1c]                     unless rc[:key_1c].blank?
+      item.count      = rc[:count]                      unless rc[:count].blank?
       item.mog        = rc[:mog]
-      item.vendor_mog = rc[:mog_vendor]                unless rc[:mog_vendor].blank?
+      item.vendor_mog = rc[:mog_vendor]                 unless rc[:mog_vendor].blank?
       item.unit       = rc[:unit]
-      item.catalog_1c = catalog_1c
+      item.catalog_1c = rc[:catalog_1c]                 unless rc[:catalog_1c].blank?
       item.department = rc[:dep_code]
       item.dep_key    = "#{rc[:dep_code]}-#{rc[:mog]}"
-      item.vendor     = rc[:vendor]                   unless rc[:vendor].blank?
-
-      item.additional_info = parse_additional_info(rc[:additional_info])  unless rc[:additional_info].blank?
-      item.crc32_cur  = Zlib.crc32(item.additional_info.join(','))        if item.additional_info
-
-#      item.in_pack    = rc[:in_pack] > 0 ? in_pack : 1
-#      item.vendor_mog_normalized = vendor_artikul.normalize_artikul unless vendor_artikul.blank?
-
+      item.vendor     = rc[:vendor]                     unless rc[:vendor].blank?
       new_record      = item.new_record?
 
+      item.additional_info = parse_additional_info(rc[:additional_info])  unless rc[:additional_info].blank?
+#      item.crc32_cur  = Zlib.crc32(item.additional_info.join(','))        if item.additional_info
+#      item.in_pack    = rc[:in_pack] > 0 ? in_pack : 1
+
       if item.save
+
+        @updated_items << item.id
 
         if new_record
           @items_ins += 1
         else
-          @updated_items << item.id
           @items_upd += 1
         end
 
       else
-        log "[#{(new_record ? 'INSERT' : 'UPDATE')}] (#{key_1c}: #{rc[:mog]}) #{item.errors.inspect}"
+        log "[#{(new_record ? 'INSERT' : 'UPDATE')}] (#{rc[:key_1c]}: #{rc[:mog]}) #{item.errors.inspect}"
       end
 
     end # save_item
 
     def save_item_extend(id, rc)
 
-      key_1c = "#{rc[:dep_code]}-#{id}"
-      @dep_codes[rc[:dep_code]] = true
+      @dep_codes << rc[:dep_code]
 
-      item   = ::Item.where(raw: false, key_1c: key_1c).first
-      item   ||= ::Item.new(raw: true,  key_1c: key_1c)
+      item   = ::Item.where(raw: false, key_1c: rc[:key_1c]).first
+      item   ||= ::Item.new(raw: true,  key_1c: rc[:key_1c])
 
       if (price = rc[:price].try(:to_i) || 0) > 0
         item.price  = price
@@ -170,15 +162,16 @@ module VoshodAvtoImport
 
       if item.save
 
+        @updated_items << item.id
+
         if new_record
           @items_ins += 1
         else
-          @updated_items << item.id
           @items_upd += 1
         end
 
       else
-        log "[#{(new_record ? 'INSERT' : 'UPDATE')}] (#{key_1c}: #{rc[:mog]}) #{item.errors.inspect}"
+        log "[#{(new_record ? 'INSERT' : 'UPDATE')}] (#{rc[:key_1c]}: #{rc[:mog]}) #{item.errors.inspect}"
       end
 
     end # save_item_extend
@@ -216,7 +209,10 @@ module VoshodAvtoImport
       # Удаляем товары без каталогов
       ::Item.with(safe: true).where(:catalog_1c => nil).delete_all
 
-      deps = @dep_codes.keys
+      # Удаляем товары без отделов
+      ::Item.with(safe: true).where(:department => nil).delete_all
+
+      deps = @dep_codes.to_a
 
       # Если обновление полное то, удаляем прежние данные:
       # -- каталоги
@@ -226,7 +222,7 @@ module VoshodAvtoImport
         # Удаляем каталоги
         ::Catalog.
           with(safe: true).
-          where(raw: false, :dep_code.in => deps, :id.nin => @updated_catalogs).
+          where(raw: false, :dep_code.in => (deps - [0]), :id.nin => @updated_catalogs).
           delete_all
 
         ::Item.
@@ -253,8 +249,8 @@ module VoshodAvtoImport
 
         end
 
-        @catalogs_ins     = ::Catalog.where(:dep_code.in => deps).count
-        @catalogs_upd     = 0
+        @catalogs_ins  = ::Catalog.where(:dep_code.in => deps).count
+        @catalogs_upd  = 0
 
         #
         clb = ::VoshodAvtoImport.full_update
@@ -262,17 +258,20 @@ module VoshodAvtoImport
 
       else
 
-        # Удаляем добавленные каталоги
+        # Закрываем обработку каталогов и товаров
         ::Catalog.
           with(safe: true).
           where(raw: true, :dep_code.in => deps).
-          delete_all
+          update_all({ raw: false })
 
-        # Удаляем добавленные товары
         ::Item.
           with(safe: true).
-          where(raw: true, :department.in => deps).
-          delete_all
+          where(raw: true, :department.in => deps).each do |item|
+
+            item.set(:raw, false)
+            item.update_sphinx
+
+        end
 
         #
         clb = ::VoshodAvtoImport.partial_update
@@ -306,7 +305,7 @@ module VoshodAvtoImport
     end # work_with_file
 
     def parse_additional_info(info)
-      (info || "").split(/\s\/\s/).map{ |el| el.strip.normalize_artikul }
+      (info || "").split(/\s\/\s/).map{ |el| el.strip }
     end # parse_additional_info
 
   end # Worker

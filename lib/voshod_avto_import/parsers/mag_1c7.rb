@@ -40,19 +40,15 @@ module VoshodAvtoImport
     end # start_element
 
     def end_element(name)
-
       @level -= 1
-
-      case name
-
-        # 1C 7.7
-        when 'doc' then
-          stop_parse_catalogs
-          save_items
-
-      end # case
-
     end # end_element
+
+    def end_document
+
+      stop_parse_catalogs
+      save_items
+
+    end # end_document
 
     private
 
@@ -92,11 +88,11 @@ module VoshodAvtoImport
 
       @catalogs_array << {
 
-        dep_code:   @catalog_dep_code,
-        name:       'Магнитогорск',
-        id:         'dep',
-        parent_id:  nil,
-        pos:        6
+        key_1c:         "#{@catalog_dep_code}-mag",
+        key_1c_parent:  nil,
+        dep_code:       0,
+        name:           "Магнитогорск",
+        pos:            1
 
       }
 
@@ -106,13 +102,19 @@ module VoshodAvtoImport
 
     def tag_catalog(attrs)
 
-      parent_id = attrs['parent'].squish
+      @catalog  = {
 
-      @catalog              = {}
-      @catalog[:parent_id]  = parent_id.blank? ? 'dep' : parent_id
-      @catalog[:dep_code]   = @catalog_dep_code
-      @catalog[:id]         = attrs['id']
-      @catalog[:name]       = attrs['name'].squish
+        key_1c:   "#{@catalog_dep_code}-#{attrs['id'].squish}",
+        dep_code: @catalog_dep_code,
+        name:     attrs['name'].squish,
+
+      }
+
+      if (parent_id = attrs['parent'].squish).blank?
+        @catalog[:key_1c_parent] = "#{@catalog_dep_code}-mag"
+      else
+        @catalog[:key_1c_parent] = "#{@catalog_dep_code}-#{parent_id}"
+      end
 
       @catalogs_item_map[@catalog[:id]] = @catalog[:dep_code]
       @catalogs_array << @catalog if catalog_valid?
@@ -123,17 +125,23 @@ module VoshodAvtoImport
 
       @item = {
 
-        id:         attrs["id"],
         dep_code:   @catalog[:dep_code],
-        catalog_id: attrs["catalog"],
         name:       attrs["name"].try(:squish),
         price:      attrs["price"].try(:squish),
         count:      attrs["count"].try(:to_i) || 0,
-        mog:        attrs["artikul"],
-        mog_vendor: attrs["vendor_artikul"],
-        unit:       attrs["unit"]
+        mog:        attrs["artikul"].try(:squish),
+        mog_vendor: attrs["vendor_artikul"].try(:squish),
+        unit:       attrs["unit"].try(:squish)
 
       }
+
+      unless (item_id = attrs['id'].squish).blank?
+        @item[:key_1c] = "#{@catalog_dep_code}-#{item_id}"
+      end
+
+      unless (catalog_id = attrs['catalog'].squish).blank?
+        @item[:catalog_1c] = "#{@catalog_dep_code}-#{catalog_id}"
+      end
 
       (@items ||= []) << @item if item_valid?
 
