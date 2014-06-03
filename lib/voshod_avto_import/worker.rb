@@ -32,7 +32,7 @@ module VoshodAvtoImport
         work_with_file
         complete_work
 
-        deps = @dep_codes.delete_if{ |el| el.nil? }
+        deps = @dep_codes.delete_if{ |el| el.nil? || el == 0 }
 
         departments = deps.inject([]) { |arr, el|
           arr << (::VoshodAvtoImport::DEPS[el] || { name: 'Неизвестно' })[:name]

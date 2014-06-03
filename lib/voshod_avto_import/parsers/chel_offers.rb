@@ -5,6 +5,8 @@ module VoshodAvtoImport
 
     ITEMS_DEPS = {
 
+      'Аксессуары'  => 1,
+
       'Автохимия'   => 2,
       'Химия'       => 2,
 
