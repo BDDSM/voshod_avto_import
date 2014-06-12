@@ -112,7 +112,7 @@ module VoshodAvtoImport
 
       @dep_codes << rc[:dep_code]
 
-      item  = ::Item.where(raw: false, key_1c: rc[:key_1c]).first
+      item  = ::Item.where(key_1c: rc[:key_1c]).first
       item  ||= ::Item.new(raw: true,  key_1c: rc[:key_1c])
 
       if (price = rc[:price].try(:to_i) || 0) > 0
@@ -155,7 +155,7 @@ module VoshodAvtoImport
 
       @dep_codes << rc[:dep_code]
 
-      item   = ::Item.where(raw: false, key_1c: rc[:key_1c]).first
+      item   = ::Item.where(key_1c: rc[:key_1c]).first
       item   ||= ::Item.new(raw: true,  key_1c: rc[:key_1c])
 
       if (price = rc[:price].try(:to_i) || 0) > 0
