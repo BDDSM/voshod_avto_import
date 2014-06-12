@@ -5,11 +5,14 @@ module VoshodAvtoImport
   # при разборе xml-файла.
   class Worker
 
-    def initialize(file, manager)
+    def self.parse(file)
+      new.parse(file)
+    end # self.parse
+
+    def initialize(file)
 
       @file             = file
       @file_name        = ::File.basename(@file)
-      @manager          = manager
       @dep_codes        = ::Set.new
       @updated_items    = []
       @updated_catalogs = []
@@ -191,7 +194,7 @@ module VoshodAvtoImport
     end # set_price_processing
 
     def log(msg)
-      @manager.log(msg)
+      ::VoshodAvtoImport.log(msg)
     end # log
 
     private
@@ -296,17 +299,7 @@ module VoshodAvtoImport
       parser  = ::Nokogiri::XML::SAX::Parser.new(pt)
       parser.parse_file(@file)
 
-      begin
-
-        if ::VoshodAvtoImport::backup_dir && ::FileTest.directory?(::VoshodAvtoImport::backup_dir)
-          ::FileUtils.mv(@file, "#{::VoshodAvtoImport.backup_dir}/#{Time.now.strftime("%Y%m%d_%H%M")}_#{@file_name}")
-        end
-
-      rescue SystemCallError
-        log "Не могу переместить файл `#{@file_name}` в `#{::VoshodAvtoImport.backup_dir}`"
-      ensure
-        ::FileUtils.rm_rf(@file)
-      end
+      ::VoshodAvtoImport.backup_file_to_dir(@file)
 
     end # work_with_file
 

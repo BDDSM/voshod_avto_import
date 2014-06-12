@@ -161,6 +161,64 @@ module VoshodAvtoImport
 
   end # partial_update
 
+  def backup_file_to_dir(file)
+
+    return false if file.nil?
+    return false if ::VoshodAvtoImport::backup_dir.nil?
+
+    begin
+
+      dir = Time.now.utc.strftime(::VoshodAvtoImport::backup_dir).gsub(/%[a-z]/, '_')
+
+      ::FileUtils.mkdir_p(dir, mode: 0755) unless ::FileTest.directory?(dir)
+      return false unless ::FileTest.directory?(dir)
+
+      ::FileUtils.mv(file, dir)
+
+    rescue SystemCallError
+      log "Не могу переместить файл `#{::File.basename(file)}` в `#{dir}`"
+    rescue => ex
+      log ex.inspect
+    ensure
+      ::FileUtils.rm_rf(file)
+    end
+
+  end # backup_file_to_dir
+
+  def log(msg = "")
+
+    create_logger unless @logger
+    @logger.error(msg)
+    msg
+
+  end # log
+
+  def close_logger
+
+    return unless @logger
+    @logger.close
+    @logger = nil
+
+  end # close_logger
+
+  private
+
+  def create_logger
+
+    return unless ::VoshodAvtoImport::log_dir && ::FileTest.directory?(::VoshodAvtoImport::log_dir)
+    return if @logger
+
+    ::FileUtils.mkdir_p(::VoshodAvtoImport::log_dir) unless ::FileTest.directory?(::VoshodAvtoImport::log_dir)
+    log_file = ::File.open(
+      ::File.join(::VoshodAvtoImport::log_dir, "import.log"),
+      ::File::WRONLY | ::File::APPEND | ::File::CREAT
+    )
+    log_file.sync = true
+    @logger = ::Logger.new(log_file, 'weekly')
+    @logger
+
+  end # create_logger
+
 end # VoshodAvtoImport
 
 require 'voshod_avto_import/version'

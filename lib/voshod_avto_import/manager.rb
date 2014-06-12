@@ -18,18 +18,13 @@ module VoshodAvtoImport
 
       extract_zip_files
       processing
-      close_logger
 
       yield if @has_files && block_given?
 
     end # run
 
     def log(msg = "")
-
-      create_logger unless @logger
-      @logger.error(msg)
-      msg
-
+      ::VoshodAvtoImport.log(msg)
     end # log
 
     private
@@ -50,7 +45,7 @@ module VoshodAvtoImport
 
       # Сортируем по дате последнего доступа по-возрастанию
       files.sort{ |a, b| ::File.new(a).mtime <=> ::File.new(b).atime }.each do |xml_file|
-        ::VoshodAvtoImport::Worker.new(xml_file, self).parse
+        ::VoshodAvtoImport::Worker.parse(xml_file)
       end # each
 
       log "На импорт всех файлов затрачено времени: #{ '%0.3f' % (Time.now.to_f - start) } секунд."
@@ -96,30 +91,6 @@ module VoshodAvtoImport
       end # Dir.glob
 
     end # extract_zip_files
-
-    def create_logger
-
-      return unless ::VoshodAvtoImport::log_dir && ::FileTest.directory?(::VoshodAvtoImport::log_dir)
-      return if @logger
-
-      ::FileUtils.mkdir_p(::VoshodAvtoImport::log_dir) unless ::FileTest.directory?(::VoshodAvtoImport::log_dir)
-      log_file = ::File.open(
-        ::File.join(::VoshodAvtoImport::log_dir, "import.log"),
-        ::File::WRONLY | ::File::APPEND | ::File::CREAT
-      )
-      log_file.sync = true
-      @logger = ::Logger.new(log_file, 'weekly')
-      @logger
-
-    end # create_logger
-
-    def close_logger
-
-      return unless @logger
-      @logger.close
-      @logger = nil
-
-    end # close_logger
 
   end # Manager
 
