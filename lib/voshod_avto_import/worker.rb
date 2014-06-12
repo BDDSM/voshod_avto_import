@@ -6,7 +6,7 @@ module VoshodAvtoImport
   class Worker
 
     def self.parse(file)
-      new.parse(file)
+      new(file).parse
     end # self.parse
 
     def initialize(file)
