@@ -97,9 +97,6 @@ module VoshodAvtoImport
         when /МАГНИТОГОРСК/i then
           @parser = ::VoshodAvtoImport::Mag1c7Parser.new(@saver)
 
-#        when /Аксессуары/i   then
-#          @parser = ::VoshodAvtoImport::Ask1c7Parser.new(@saver)
-
       end # case
 
     end # get_1c7
