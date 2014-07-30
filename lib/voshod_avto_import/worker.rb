@@ -307,7 +307,13 @@ module VoshodAvtoImport
     end # work_with_file
 
     def parse_additional_info(info)
-      (info || "").split(/[\s\/\s|\n|\r]/).map{ |el| el.clean_whitespaces }.uniq
+
+      (info || "").
+        split(/\s\/\s|\n|\r/).
+        map{ |el| el.clean_whitespaces }.
+        delete_if(&:blank?).
+        uniq
+
     end # parse_additional_info
 
   end # Worker
