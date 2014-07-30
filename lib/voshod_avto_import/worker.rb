@@ -112,7 +112,7 @@ module VoshodAvtoImport
 
       @dep_codes << rc[:dep_code]
 
-      item  = ::Item.where(key_1c: rc[:key_1c]).first
+      item  = ::Item.where(key_1c: rc[:key_1c]).limit(1).first
       item  ||= ::Item.new(raw: true,  key_1c: rc[:key_1c])
 
       if (price = rc[:price].try(:to_i) || 0) > 0
@@ -131,13 +131,16 @@ module VoshodAvtoImport
       item.vendor     = rc[:vendor]                     unless rc[:vendor].blank?
       new_record      = item.new_record?
 
-      item.additional_info = parse_additional_info(rc[:additional_info])  unless rc[:additional_info].blank?
-#      item.crc32_cur  = Zlib.crc32(item.additional_info.join(','))        if item.additional_info
-#      item.in_pack    = rc[:in_pack] > 0 ? in_pack : 1
+      # Кросы доступны только для отдела Иномарки
+      if [6].include?(rc[:dep_code])
+        item.crosses  = parse_additional_info(rc[:crosses]) unless rc[:crosses].blank?
+      end
 
       if item.save
 
         @updated_items << item.id
+
+        item.reload_crosses
 
         if new_record
           @items_ins += 1
@@ -304,7 +307,7 @@ module VoshodAvtoImport
     end # work_with_file
 
     def parse_additional_info(info)
-      (info || "").split(/\s\/\s/).map{ |el| el.strip }
+      (info || "").split(/[\s\/\s|\n|\r]/).map{ |el| el.clean_whitespaces }.uniq
     end # parse_additional_info
 
   end # Worker

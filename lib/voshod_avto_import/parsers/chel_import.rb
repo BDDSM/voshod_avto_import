@@ -162,7 +162,7 @@ module VoshodAvtoImport
           grub_item(:unit)
 
         when 'ДополнительноеОписаниеНоменклатуры' then
-          grub_item(:additional_info)
+          grub_item(:crosses)
 
         # 1C 8 (свойства)
         when 'Свойства'       then
