@@ -74,9 +74,16 @@ module VoshodAvtoImport
               # Создаем дополнительную вложенность т.к. 1С 8 выгружает всегда одни и теже
               # навания файлов, и если таких выгрузок будет много, то при распковке файлы
               # будут перезатираться
-              f_path = ::File.join(::VoshodAvtoImport::import_dir, "#{i}", f.name)
+
+              f_path = ::File.join(
+                ::VoshodAvtoImport::import_dir,
+                "#{i}",
+                f.file? ? "#{rand}-#{Time.now.to_f}-#{f.name}" : f.name
+              )
+
               ::FileUtils.rm_rf f_path if ::File.exist?(f_path)
               ::FileUtils.mkdir_p(::File.dirname(f_path))
+
               zip_file.extract(f, f_path)
 
             } # each
