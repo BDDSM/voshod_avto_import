@@ -140,8 +140,6 @@ module VoshodAvtoImport
 
         @updated_items << item.id
 
-        item.reload_crosses
-
         if new_record
           @items_ins += 1
         else
@@ -230,6 +228,9 @@ module VoshodAvtoImport
       # -- каталоги
       # -- товары
       unless @partial_update
+
+        # Обновляем все кроссы при полном обновлении
+        ::ItemCross.reload_all if deps.include?(6)
 
         # Удаляем каталоги
         ::Catalog.
