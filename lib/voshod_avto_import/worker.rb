@@ -132,8 +132,8 @@ module VoshodAvtoImport
       new_record      = item.new_record?
 
       # Кросы доступны только для отдела Иномарки
-      if [6].include?(rc[:dep_code])
-        item.crosses  = parse_additional_info(rc[:crosses]) unless rc[:crosses].blank?
+      if [6].include?(rc[:dep_code]) && !rc[:crosses].blank?
+        item.crosses  = parse_additional_info(rc[:crosses])
       end
 
       if item.save
@@ -311,7 +311,7 @@ module VoshodAvtoImport
 
       (info || "").
         split(/\/|\n|\r|\t|\,|\;/).
-        map{ |el| el.clean_whitespaces }.
+        map { |el| el.clean_whitespaces }.
         delete_if { |el| el.blank? || el.length > 40 }.
         uniq
 
