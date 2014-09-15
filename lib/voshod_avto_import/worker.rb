@@ -310,7 +310,7 @@ module VoshodAvtoImport
     def parse_additional_info(info)
 
       (info || "").
-        split(/\/|\n|\r|\t|\,|\;/).
+        split(/\s\/\s|\n|\r|\t|\,|\;/).
         map { |el| el.clean_whitespaces }.
         delete_if { |el| el.blank? || el.length > 40 }.
         uniq
