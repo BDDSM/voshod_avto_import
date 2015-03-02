@@ -15,7 +15,7 @@ module VoshodAvtoImport
 
       name:     'Аксессуары и электроника',
       pos:      0,
-      email:    ["el@v-avto.ru"],
+      email:    ["aks@v-avto.ru"],
       translit: "Aksessuary_i_electronika"
 
     },
@@ -33,7 +33,7 @@ module VoshodAvtoImport
 
       name:     'Инструмент',
       pos:      1,
-      email:    ["kat@v-avto.ru"],
+      email:    ["instr@v-avto.ru"],
       translit: "Instrument"
 
     },
@@ -60,7 +60,7 @@ module VoshodAvtoImport
 
       name:     'Запчасти для иномарок',
       pos:      5,
-      email:    ["nt@v-avto.ru", "inomarki@v-avto.ru"],
+      email:    ["inomarki@v-avto.ru"],
       translit: "Zapchasti_dlya_inomarok"
 
     },
@@ -78,7 +78,7 @@ module VoshodAvtoImport
 
       name:     'Екатеринбург',
       pos:      7,
-      email:    ["info@aga-ural.ru"],
+      email:    ["ekb@v-avto.ru"],
       translit: "Ekaterinburg"
 
     }
