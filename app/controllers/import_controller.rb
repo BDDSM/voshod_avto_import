@@ -4,7 +4,7 @@ class ImportController < ApplicationController
   unloadable
 
   before_filter :auth
-  skip_before_filter :verify_authenticity_token, :only => :save_file
+  skip_before_filter :verify_authenticity_token, :only => [:save_file, :save_file_mag]
 
   def index
 
@@ -12,7 +12,7 @@ class ImportController < ApplicationController
     when 'checkauth'
       render(:text => "success\nimport_1c\n#{rand(9999)}", :layout => false) and return
     when 'init'
-      render(:text => "zip=yes\nfile_limit=999999999", :layout => false) and return
+      render(:text => "zip=yes\nfile_limit=99999999999999999", :layout => false) and return
     when 'import'
       render(:text => "success", :layout => false) and return
     else
@@ -31,6 +31,17 @@ class ImportController < ApplicationController
     render(:text => "success", :layout => false) and return
 
   end # save_file
+
+  def save_file_mag
+
+    file_path = File.join(VoshodAvtoImport::import_dir, "#{rand}-#{Time.now.to_f}.zip")
+    File.open(file_path, 'wb') do |f|
+      f.write request.body.read
+    end
+
+    render(:text => "success", :layout => false) and return
+
+  end # save_file_mag
 
   private
 
