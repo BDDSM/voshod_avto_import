@@ -157,7 +157,7 @@ module VoshodAvtoImport
     def change_catalog_parent
 
       return if @start_parse_catalogs != true
-      @catalog_parent_id[@catalog_level] = @catalog[:id]
+      @catalog_parent_id[@catalog_level] = @catalog[:key_1c]
 
     end # change_catalog_parent
 
