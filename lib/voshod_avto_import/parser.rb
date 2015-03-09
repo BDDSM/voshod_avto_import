@@ -114,20 +114,19 @@ module VoshodAvtoImport
       return unless @init_1c8_import
       @init_1c8_import = false
 
-      if @dir_base == '/home/vavtoimportmag'  # '/Users/tyralion/work/voshod_avto/tmp/import_mag'
-        @parser = ::VoshodAvtoImport::MagImportParser.new(@saver)
-        return
-      end
+      case @dir_base
 
-      case @str
-
-        # Челябинк
-        when 'db996b9e-3d2f-11e1-84e7-00237d443107' then
-          @parser = ::VoshodAvtoImport::ChelImportParser.new(@saver)
+        # Магнитогорск
+        when '/home/vavtoimportmag' then # '/Users/tyralion/work/voshod_avto/tmp/import_mag'
+          @parser = ::VoshodAvtoImport::MagImportParser.new(@saver)
 
         # Екатеринбург
-        when '95912c90-191b-11de-bee1-00167682119b' then
+        when '/home/vavtoimportekb' then # '/Users/tyralion/work/voshod_avto/tmp/import_ekb'
           @parser = ::VoshodAvtoImport::EkbImportParser.new(@saver)
+
+        # Челябинк
+        else
+          @parser = ::VoshodAvtoImport::ChelImportParser.new(@saver)
 
       end # case
 
@@ -138,20 +137,19 @@ module VoshodAvtoImport
       return unless @init_1c8_offers
       @init_1c8_offers = false
 
-      if @dir_base == '/home/vavtoimportmag' # '/Users/tyralion/work/voshod_avto/tmp/import_mag'
-        @parser = ::VoshodAvtoImport::MagOffersParser.new(@saver)
-        return
-      end
+      case @dir_base
 
-      case @str
-
-        # Челябинк
-        when 'db996b9e-3d2f-11e1-84e7-00237d443107' then
-          @parser = ::VoshodAvtoImport::ChelOffersParser.new(@saver)
+        # Магнитогорск
+        when '/home/vavtoimportmag' then # '/Users/tyralion/work/voshod_avto/tmp/import_mag'
+          @parser = ::VoshodAvtoImport::MagOffersParser.new(@saver)
 
         # Екатеринбург
-        when '95912c90-191b-11de-bee1-00167682119b' then
+        when '/home/vavtoimportekb' then # '/Users/tyralion/work/voshod_avto/tmp/import_ekb'
           @parser = ::VoshodAvtoImport::EkbOffersParser.new(@saver)
+
+        # Челябинк
+        else
+          @parser = ::VoshodAvtoImport::ChelOffersParser.new(@saver)
 
       end # case
 

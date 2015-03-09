@@ -43,6 +43,17 @@ class ImportController < ApplicationController
 
   end # save_file_mag
 
+  def save_file_ekb
+
+    file_path = ::File.join('/home/vavtoimportekb', "#{rand}-#{::Time.now.to_f}.zip")
+    ::File.open(file_path, 'wb') do |f|
+      f.write request.body.read
+    end
+
+    render(text: "success", layout: false) and return
+
+  end # save_file_ekb
+
   private
 
   def auth
