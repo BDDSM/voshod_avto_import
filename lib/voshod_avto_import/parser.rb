@@ -114,7 +114,7 @@ module VoshodAvtoImport
       return unless @init_1c8_import
       @init_1c8_import = false
 
-      if @dir_base == "/Users/tyralion/work/voshod_avto/tmp/import_mag"
+      if @dir_base == '/home/vavtoimportmag'  # '/Users/tyralion/work/voshod_avto/tmp/import_mag'
         @parser = ::VoshodAvtoImport::MagImportParser.new(@saver)
         return
       end
@@ -138,7 +138,7 @@ module VoshodAvtoImport
       return unless @init_1c8_offers
       @init_1c8_offers = false
 
-      if @dir_base == "/Users/tyralion/work/voshod_avto/tmp/import_mag"
+      if @dir_base == '/home/vavtoimportmag' # '/Users/tyralion/work/voshod_avto/tmp/import_mag'
         @parser = ::VoshodAvtoImport::MagOffersParser.new(@saver)
         return
       end
