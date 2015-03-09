@@ -5,14 +5,14 @@ module VoshodAvtoImport
   # при разборе xml-файла.
   class Worker
 
-    def self.parse(file, dir_base)
-      new(file, dir_base).parse
+    def self.parse(file, parsers_map)
+      new(file, parsers_map).parse
     end # self.parse
 
-    def initialize(file, dir_base)
+    def initialize(file, parsers_map)
 
       @file             = file
-      @dir_base         = dir_base
+      @parsers_map      = parsers_map
       @file_name        = ::File.basename(@file)
       @dep_codes        = ::Set.new
       @updated_items    = []
@@ -300,7 +300,7 @@ module VoshodAvtoImport
 
     def work_with_file
 
-      pt      = ::VoshodAvtoImport::XmlParser.new(self, @dir_base)
+      pt      = ::VoshodAvtoImport::XmlParser.new(self, @parsers_map)
       parser  = ::Nokogiri::XML::SAX::Parser.new(pt)
       parser.parse_file(@file)
 

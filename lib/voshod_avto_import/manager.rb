@@ -29,14 +29,21 @@ module VoshodAvtoImport
 
     private
 
+    def import_dirs
+      @import_dirs ||= (::VoshodAvtoImport::import_map || {}).keys
+    end # import_dirs
+
+    def import_map
+      @import_map ||= (::VoshodAvtoImport::import_map || {})
+    end # import_map
+
     def processing
 
-      dirs = ::VoshodAvtoImport::import_dirs || []
-      return self if dirs.empty?
+      return self if import_map.empty?
 
       start = ::Time.now.to_f
 
-      dirs.each do |dir|
+      import_map.each do |dir, parsers_map|
 
         files = ::Dir.glob( ::File.join(dir, "**", "*.xml") )
         next unless files && files.size > 0
@@ -45,7 +52,7 @@ module VoshodAvtoImport
 
         # Сортируем по дате последнего доступа по-возрастанию
         files.sort{ |a, b| ::File.new(a).mtime <=> ::File.new(b).atime }.each do |xml_file|
-          ::VoshodAvtoImport::Worker.parse(xml_file, dir)
+          ::VoshodAvtoImport::Worker.parse(xml_file, parsers_map)
         end # each
 
       end # each
@@ -60,8 +67,7 @@ module VoshodAvtoImport
     # Ищем и распаковываем все zip-архивы, после - удаляем
     def extract_zip_files
 
-      dirs = ::VoshodAvtoImport::import_dirs || []
-      dirs.each do |dir|
+      import_dirs.each do |dir|
 
         files = ::Dir.glob( ::File.join(dir, "**", "*.zip") )
         next unless files && files.size > 0

@@ -108,12 +108,12 @@ module VoshodAvtoImport
 
   alias :pass :password
 
-  def import_dirs(*args)
+  def import_map(v = nil)
 
-    @import_dirs = args.flatten unless args.empty?
-    @import_dirs
+    @import_map = v if v.is_a?(::Hash)
+    @import_map
 
-  end # import_dirs
+  end # import_map
 
   def backup_dir(v = nil)
 

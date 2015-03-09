@@ -4,11 +4,11 @@ module VoshodAvtoImport
   # Класс-шаблон по разбору товарных xml-файлов
   class XmlParser < Nokogiri::XML::SAX::Document
 
-    def initialize(saver, dir_base = nil)
+    def initialize(saver, parsers_map)
 
-      @saver      = saver
-      @str        = ""
-      @dir_base   = dir_base
+      @saver        = saver
+      @str          = ""
+      @parsers_map  = parsers_map
 
     end # initialize
 
@@ -22,17 +22,11 @@ module VoshodAvtoImport
 
         case name
 
-          # 1с7.7
-          when 'doc'              then
-            get_1c7(name, attrs)
-
           # 1c8 (import)
-          when 'Классификатор'    then
-            init_1c8_import(name, attrs)
+          when 'Классификатор'    then init_1c8_import(name, attrs)
 
           # 1c8 (offers)
-          when 'ПакетПредложений' then
-            init_1c8_offers(name, attrs)
+          when 'ПакетПредложений' then init_1c8_offers(name, attrs)
 
         end # case
 
@@ -52,12 +46,10 @@ module VoshodAvtoImport
         case name
 
           # 1c8 (import)
-          when 'Ид'               then
-            get_1c8_import(name)
+          when 'Ид'               then get_1c8_import(name)
 
           # 1c8 (import)
-          when 'ИдКлассификатора' then
-            get_1c8_offers(name)
+          when 'ИдКлассификатора' then get_1c8_offers(name)
 
         end # case
 
@@ -90,17 +82,6 @@ module VoshodAvtoImport
 
     private
 
-    def get_1c7(name, attrs)
-
-      case attrs["department"]
-
-        when /МАГНИТОГОРСК/i then
-          @parser = ::VoshodAvtoImport::Mag1c7Parser.new(@saver)
-
-      end # case
-
-    end # get_1c7
-
     def init_1c8_import(name, attrs)
       @init_1c8_import = true
     end # init_1c8_import
@@ -114,21 +95,7 @@ module VoshodAvtoImport
       return unless @init_1c8_import
       @init_1c8_import = false
 
-      case @dir_base
-
-        # Магнитогорск
-        when '/home/vavtoimportmag' then # '/Users/tyralion/work/voshod_avto/tmp/import_mag'
-          @parser = ::VoshodAvtoImport::MagImportParser.new(@saver)
-
-        # Екатеринбург
-        when '/home/vavtoimportekb' then # '/Users/tyralion/work/voshod_avto/tmp/import_ekb'
-          @parser = ::VoshodAvtoImport::EkbImportParser.new(@saver)
-
-        # Челябинк
-        else
-          @parser = ::VoshodAvtoImport::ChelImportParser.new(@saver)
-
-      end # case
+      @parser = @parsers_map[:import].send(:new, @saver)
 
     end # get_1c8_import
 
@@ -137,21 +104,7 @@ module VoshodAvtoImport
       return unless @init_1c8_offers
       @init_1c8_offers = false
 
-      case @dir_base
-
-        # Магнитогорск
-        when '/home/vavtoimportmag' then # '/Users/tyralion/work/voshod_avto/tmp/import_mag'
-          @parser = ::VoshodAvtoImport::MagOffersParser.new(@saver)
-
-        # Екатеринбург
-        when '/home/vavtoimportekb' then # '/Users/tyralion/work/voshod_avto/tmp/import_ekb'
-          @parser = ::VoshodAvtoImport::EkbOffersParser.new(@saver)
-
-        # Челябинк
-        else
-          @parser = ::VoshodAvtoImport::ChelOffersParser.new(@saver)
-
-      end # case
+      @parser = @parsers_map[:offers].send(:new, @saver)
 
     end # get_1c8_offers
 
