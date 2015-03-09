@@ -4,11 +4,11 @@ module VoshodAvtoImport
   # Класс-шаблон по разбору товарных xml-файлов
   class XmlParser < Nokogiri::XML::SAX::Document
 
-    def initialize(saver)
+    def initialize(saver, dir_base = nil)
 
-      @saver    = saver
-      @parser   = nil
-      @str      = ""
+      @saver      = saver
+      @str        = ""
+      @dir_base   = dir_base
 
     end # initialize
 
@@ -114,6 +114,11 @@ module VoshodAvtoImport
       return unless @init_1c8_import
       @init_1c8_import = false
 
+      if @dir_base == "/Users/tyralion/work/voshod_avto/tmp/import_mag"
+        @parser = ::VoshodAvtoImport::MagImportParser.new(@saver)
+        return
+      end
+
       case @str
 
         # Челябинк
@@ -132,6 +137,11 @@ module VoshodAvtoImport
 
       return unless @init_1c8_offers
       @init_1c8_offers = false
+
+      if @dir_base == "/Users/tyralion/work/voshod_avto/tmp/import_mag"
+        @parser = ::VoshodAvtoImport::MagOffersParser.new(@saver)
+        return
+      end
 
       case @str
 

@@ -108,12 +108,12 @@ module VoshodAvtoImport
 
   alias :pass :password
 
-  def import_dir(v = nil)
+  def import_dirs(*args)
 
-    @import_dir = v unless v.blank?
-    @import_dir
+    @import_dirs = args.flatten unless args.empty?
+    @import_dirs
 
-  end # import_dir
+  end # import_dirs
 
   def backup_dir(v = nil)
 

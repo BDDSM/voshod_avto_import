@@ -31,71 +31,80 @@ module VoshodAvtoImport
 
     def processing
 
-      unless ::VoshodAvtoImport::import_dir && ::FileTest.directory?(::VoshodAvtoImport::import_dir)
-        log "Директория #{::VoshodAvtoImport::import_dir} не существует!"
-        return
-      end
+      dirs = ::VoshodAvtoImport::import_dirs || []
+      return self if dirs.empty?
 
-      files = ::Dir.glob( ::File.join(::VoshodAvtoImport::import_dir, "**", "*.xml") )
-      return unless files && files.size > 0
+      start = ::Time.now.to_f
 
-      @has_files = true
+      dirs.each do |dir|
 
-      start = Time.now.to_f
+        files = ::Dir.glob( ::File.join(dir, "**", "*.xml") )
+        next unless files && files.size > 0
 
-      # Сортируем по дате последнего доступа по-возрастанию
-      files.sort{ |a, b| ::File.new(a).mtime <=> ::File.new(b).atime }.each do |xml_file|
-        ::VoshodAvtoImport::Worker.parse(xml_file)
+        @has_files = true
+
+        # Сортируем по дате последнего доступа по-возрастанию
+        files.sort{ |a, b| ::File.new(a).mtime <=> ::File.new(b).atime }.each do |xml_file|
+          ::VoshodAvtoImport::Worker.parse(xml_file, dir)
+        end # each
+
       end # each
 
-      log "На импорт всех файлов затрачено времени: #{ '%0.3f' % (Time.now.to_f - start) } секунд."
+      log "На импорт всех файлов затрачено времени: #{ '%0.3f' % (::Time.now.to_f - start) } секунд."
       log ""
 
       self
 
     end # processing
 
+    # Ищем и распаковываем все zip-архивы, после - удаляем
     def extract_zip_files
 
-      # Ищем и распаковываем все zip-архивы, после - удаляем
-      files = ::Dir.glob( ::File.join(::VoshodAvtoImport::import_dir, "**", "*.zip") )
-      return unless files && files.size > 0
+      dirs = ::VoshodAvtoImport::import_dirs || []
+      dirs.each do |dir|
 
-      i = 0
-      files.each do |zip|
+        files = ::Dir.glob( ::File.join(dir, "**", "*.zip") )
+        next unless files && files.size > 0
 
-        i+= 1
-        begin
+        i = 0
+        files.each do |zip|
 
-          ::Zip::File.open(zip) { |zip_file|
+          i+= 1
+          begin
 
-            zip_file.each { |f|
+            ::Zip::File.open(zip) { |zip_file|
 
-              # Создаем дополнительную вложенность т.к. 1С 8 выгружает всегда одни и теже
-              # навания файлов, и если таких выгрузок будет много, то при распковке файлы
-              # будут перезатираться
+              zip_file.each { |f|
 
-              f_path = ::File.join(
-                ::VoshodAvtoImport::import_dir,
-                "#{i}",
-                f.file? ? "#{rand}-#{Time.now.to_f}-#{f.name}" : f.name
-              )
+                # Создаем дополнительную вложенность т.к. 1С 8 выгружает всегда одни и теже
+                # навания файлов, и если таких выгрузок будет много, то при распковке файлы
+                # будут перезатираться
 
-              ::FileUtils.rm_rf f_path if ::File.exist?(f_path)
-              ::FileUtils.mkdir_p(::File.dirname(f_path))
+                f_path = ::File.join(
+                  dir,
+                  "#{i}",
+                  f.file? ? "#{rand}-#{::Time.now.to_f}-#{f.name}" : f.name
+                )
 
-              zip_file.extract(f, f_path)
+                ::FileUtils.rm_rf f_path if ::File.exist?(f_path)
+                ::FileUtils.mkdir_p(::File.dirname(f_path))
 
-            } # each
+                zip_file.extract(f, f_path)
 
-          } # open
+              } # each
 
-          ::FileUtils.rm_rf(zip)
+            } # open
 
-        rescue
-        end
+            ::FileUtils.rm_rf(zip)
 
-      end # Dir.glob
+          rescue
+          end
+
+        end # Dir.glob
+
+      end # each
+
+      self
 
     end # extract_zip_files
 

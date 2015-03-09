@@ -125,7 +125,7 @@ module VoshodAvtoImport
         when 'Ид'             then
           grub_catalog(:id)
           grub_item(:id)
-          grub_catalog_for_item
+          grub_catalog_for_item(:catalog_id)
           grub_property(:id)
           grub_item_property(:id)
 
@@ -363,7 +363,7 @@ module VoshodAvtoImport
       @start_parse_item == true && parent_tag == 'Группы'
     end # id_group_for_item?
 
-    def grub_catalog_for_item(attr_name = :catalog_id)
+    def grub_catalog_for_item(attr_name)
       @item[attr_name] = @str if id_group_for_item?
     end # grub_catalog_for_item
 

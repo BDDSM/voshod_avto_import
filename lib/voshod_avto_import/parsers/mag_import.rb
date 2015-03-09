@@ -1,9 +1,9 @@
 # encoding: utf-8
 module VoshodAvtoImport
 
-  class EkbImportParser < ::VoshodAvtoImport::BaseParser
+  class MagImportParser < ::VoshodAvtoImport::BaseParser
 
-    DEP_CODE = 8.freeze
+    DEP_CODE = 7.freeze
 
     def initialize(saver)
 
@@ -122,7 +122,7 @@ module VoshodAvtoImport
           grub_item(:unit)
 
         when 'ДополнительноеОписаниеНоменклатуры' then
-          grub_item(:additional_info)
+          grub_item(:crosses)
 
         # 1C 8 (свойства)
         when 'Свойства'       then
@@ -157,7 +157,7 @@ module VoshodAvtoImport
     def change_catalog_parent
 
       return if @start_parse_catalogs != true
-      @catalog_parent_id[@catalog_level] = @catalog[:id]
+      @catalog_parent_id[@catalog_level] = @catalog[:key_1c]
 
     end # change_catalog_parent
 
@@ -170,16 +170,16 @@ module VoshodAvtoImport
 
       @catalogs_array << {
 
-        id:             "ekb",
-        key_1c:         "ekb",
+        id:             "mag",
+        key_1c:         "mag",
         key_1c_parent:  nil,
         dep_code:       DEP_CODE,
-        name:           "Екатеринбург",
-        pos:            0
+        name:           "Магнитогорск",
+        pos:            2
 
       }
 
-      @catalog_parent_id[0] = "ekb"
+      @catalog_parent_id[0] = "mag"
 
     end # start_parse_catalogs
 
@@ -213,7 +213,7 @@ module VoshodAvtoImport
       @start_parse_catalog = false
 
       @catalog[:key_1c]         = "#{DEP_CODE}-#{@catalog[:id]}"
-      @catalog[:key_1c_parent]  = @catalog_parent_id[@catalog_level-1] || "ekb"
+      @catalog[:key_1c_parent]  = @catalog_parent_id[@catalog_level-1] || "mag"
 
       @catalogs_array << @catalog if catalog_valid?
 
@@ -224,7 +224,7 @@ module VoshodAvtoImport
     end # up_catalog_level
 
     def down_catalog_level
-      @catalog_level -= 1
+      @catalog_level  -= 1
     end # down_catalog_level
 
     def grub_catalog(attr_name)
@@ -303,7 +303,7 @@ module VoshodAvtoImport
     end # for_item?
 
     def grub_item(attr_name)
-      @item[attr_name] = @str.squish if for_item?
+      @item[attr_name] = @str if for_item?
     end # grub_item
 
     def id_group_for_item?
@@ -424,6 +424,6 @@ module VoshodAvtoImport
 
     end # stop_parse_item_extend
 
-  end # EkbImportParser
+  end # MagImportParser
 
 end # VoshodAvtoImport
