@@ -202,7 +202,9 @@ module VoshodAvtoImport
       return if @start_parse_catalogs != true
 
       @start_parse_catalog = true
-      @catalog             = {}
+      @catalog             = {
+        dep_code: DEP_CODE
+      }
 
     end # start_parse_catalog
 
