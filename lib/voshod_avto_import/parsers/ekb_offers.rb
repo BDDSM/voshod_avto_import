@@ -217,7 +217,7 @@ module VoshodAvtoImport
       @start_parse_item_price = false
 
       price_id = @prices[ @item_price[:id] ]
-      return if price_id.nil? || !['Ц4 - МЕЛКИЙ ОПТ'].include?(price_id)
+      return if price_id.nil? || !['Ц2 - КРУПНЫЙ ОПТ'].include?(price_id)
 
       @item[:price] = @item_price[:price]
 
