@@ -222,10 +222,7 @@ module VoshodAvtoImport
 end # VoshodAvtoImport
 
 require 'voshod_avto_import/version'
-
-require 'voshod_avto_import/ext'
-require 'voshod_avto_import/mailer'
-
+require 'voshod_avto_import/util'
 require 'voshod_avto_import/base_parser'
 
 Dir[File.join(File.dirname(__FILE__), '/voshod_avto_import/parsers/**/*.rb')].each do |libs|

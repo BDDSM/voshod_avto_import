@@ -12,6 +12,7 @@ module VoshodAvtoImport
         loop do
 
           ::VoshodAvtoImport.run
+          ::GC.start
           sleep ::VoshodAvtoImport::wait
 
         end # loop

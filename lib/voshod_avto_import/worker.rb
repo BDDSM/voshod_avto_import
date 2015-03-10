@@ -120,7 +120,7 @@ module VoshodAvtoImport
         item.price    = price
       end
 
-      item.name       = rc[:name].xml_unescape
+      item.name       = ::VoshodAvtoImport::Util.xml_unescape(rc[:name])
       item.key_1c     = rc[:key_1c]
       item.count      = rc[:count]                      unless rc[:count].blank?
       item.mog        = rc[:mog]
