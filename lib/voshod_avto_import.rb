@@ -85,13 +85,6 @@ module VoshodAvtoImport
 
   }.freeze # DEPS
 
-  def proc_name(v = nil)
-
-    @proc_name = v unless v.blank?
-    @proc_name
-
-  end # proc_name
-
   def login(v = nil)
 
     @login = v unless v.blank?
@@ -122,13 +115,6 @@ module VoshodAvtoImport
 
   end # backup_dir
 
-  def daemon_log(v = nil)
-
-    @daemon_log = v unless v.blank?
-    @daemon_log
-
-  end # daemon_log
-
   def log_dir(v = nil)
 
     @log_dir = v unless v.blank?
@@ -144,7 +130,12 @@ module VoshodAvtoImport
   end # wait
 
   def run
+
+    return unless ::File.new("/tmp/voshod_avto_import.lock", "w").flock( ::File::LOCK_NB | ::File::LOCK_EX )
+
+    trap("INT", "EXIT")
     ::VoshodAvtoImport::Manager.run
+
   end # run
 
   def full_update(v = nil)
@@ -249,4 +240,3 @@ if defined?(::Rails)
   require 'voshod_avto_import/engine'
   require 'voshod_avto_import/railtie'
 end
-
