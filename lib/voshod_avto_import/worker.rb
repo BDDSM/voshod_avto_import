@@ -267,8 +267,12 @@ module VoshodAvtoImport
         @catalogs_upd  = 0
 
         #
-        clb = ::VoshodAvtoImport.full_update
-        clb.call(deps) if clb.is_a?(::Proc)
+        begin
+          clb = ::VoshodAvtoImport.full_update
+          clb.call(deps) if clb.is_a?(::Proc)
+        rescue => ex
+          log ex.inspect
+        end
 
       else
 
@@ -288,8 +292,12 @@ module VoshodAvtoImport
         end
 
         #
-        clb = ::VoshodAvtoImport.partial_update
-        clb.call(deps) if clb.is_a?(::Proc)
+        begin
+          clb = ::VoshodAvtoImport.partial_update
+          clb.call(deps) if clb.is_a?(::Proc)
+        rescue => ex
+          log ex.inspect
+        end
 
       end # unless
 
