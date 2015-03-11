@@ -142,6 +142,8 @@ module VoshodAvtoImport
 
     begin
       ::VoshodAvtoImport::Manager.run
+    rescue => ex
+      log ex.inspect
     ensure
       ::FileUtils.rm(::VoshodAvtoImport::FILE_LOCK, force: true)
     end
