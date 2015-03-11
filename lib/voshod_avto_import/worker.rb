@@ -63,7 +63,7 @@ module VoshodAvtoImport
 
         begin
           clb = ::VoshodAvtoImport.partial_update
-          clb.call(deps, ::VoshodAvtoImport.dump_log) if clb.is_a?(::Proc)
+          clb.call(departments, ::VoshodAvtoImport.dump_log) if clb.is_a?(::Proc)
         rescue => ex
           log ex.inspect
         end
