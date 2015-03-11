@@ -90,7 +90,10 @@ module VoshodAvtoImport
       catalog.name            = rc[:name]
       catalog.dep_code        = rc[:dep_code]
       catalog.key_1c_parent   = rc[:key_1c_parent]
+
       catalog.parent_id       = parent_id
+      catalog.updated_at      = ::Time.now.utc
+
       new_record              = catalog.new_record?
 
       if catalog.with(safe: true).save
@@ -130,6 +133,8 @@ module VoshodAvtoImport
       item.department = rc[:dep_code]
       item.dep_key    = "#{rc[:dep_code]}-#{rc[:mog]}"
       item.vendor     = rc[:vendor]                     unless rc[:vendor].blank?
+      item.updated_at = ::Time.now.utc
+
       new_record      = item.new_record?
 
       # Кросы доступны только для отдела Иномарки
@@ -169,6 +174,8 @@ module VoshodAvtoImport
       item.mog        = rc[:mog]
       item.department = rc[:dep_code]
       item.dep_key    = "#{rc[:dep_code]}-#{rc[:mog]}"
+      item.updated_at = ::Time.now.utc
+
       new_record      = item.new_record?
 
       if item.save
