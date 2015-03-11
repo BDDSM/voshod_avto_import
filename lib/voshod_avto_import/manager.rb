@@ -16,10 +16,14 @@ module VoshodAvtoImport
 
       @has_files = false
 
+      ::VoshodAvtoImport.clear_log
+
       extract_zip_files
       processing
 
       yield if @has_files && block_given?
+
+      ::VoshodAvtoImport.clear_log
 
     end # run
 

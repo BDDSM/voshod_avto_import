@@ -189,6 +189,9 @@ module VoshodAvtoImport
 
     create_logger unless @logger
     @logger.error(msg)
+
+    (@dump_log ||= "") << msg
+
     msg
 
   end # log
@@ -200,6 +203,14 @@ module VoshodAvtoImport
     @logger = nil
 
   end # close_logger
+
+  def dump_log
+    @dump_log || ""
+  end # dump_log
+
+  def clear_log
+    @dump_log = nil
+  end # clear_log
 
   private
 
