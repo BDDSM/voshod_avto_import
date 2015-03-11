@@ -59,6 +59,26 @@ module VoshodAvtoImport
 
       end # if
 
+      if @partial_update
+
+        begin
+          clb = ::VoshodAvtoImport.partial_update
+          clb.call(deps, ::VoshodAvtoImport.dump_log) if clb.is_a?(::Proc)
+        rescue => ex
+          log ex.inspect
+        end
+
+      else
+
+        begin
+          clb = ::VoshodAvtoImport.full_update
+          clb.call(departments, ::VoshodAvtoImport.dump_log) if clb.is_a?(::Proc)
+        rescue => ex
+          log ex.inspect
+        end
+
+      end
+
       self
 
     end # parse_file
@@ -273,14 +293,6 @@ module VoshodAvtoImport
         @catalogs_ins  = ::Catalog.where(:dep_code.in => deps).count
         @catalogs_upd  = 0
 
-        #
-        begin
-          clb = ::VoshodAvtoImport.full_update
-          clb.call(deps, ::VoshodAvtoImport.dump_log) if clb.is_a?(::Proc)
-        rescue => ex
-          log ex.inspect
-        end
-
       else
 
         # Закрываем обработку каталогов и товаров
@@ -296,14 +308,6 @@ module VoshodAvtoImport
             item.set(:raw, false)
             item.update_sphinx
 
-        end
-
-        #
-        begin
-          clb = ::VoshodAvtoImport.partial_update
-          clb.call(deps, ::VoshodAvtoImport.dump_log) if clb.is_a?(::Proc)
-        rescue => ex
-          log ex.inspect
         end
 
       end # unless
