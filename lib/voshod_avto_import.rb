@@ -9,6 +9,8 @@ module VoshodAvtoImport
 
   extend self
 
+  FILE_LOCK = '/tmp/voshod_avto_import.lock'.freeze
+
   DEPS = {
 
     1 => {
@@ -131,10 +133,14 @@ module VoshodAvtoImport
 
   def run
 
-    return unless ::File.new("/tmp/voshod_avto_import.lock", "w").flock( ::File::LOCK_NB | ::File::LOCK_EX )
+    f = ::File.new(::VoshodAvtoImport::FILE_LOCK, ::File::RDWR|::File::CREAT, 0400)
+    return if f.flock(::File::LOCK_EX) === false
 
-    trap("INT", "EXIT")
-    ::VoshodAvtoImport::Manager.run
+    begin
+      ::VoshodAvtoImport::Manager.run
+    ensure
+      ::FileUtils.rm(::VoshodAvtoImport::FILE_LOCK, force: true)
+    end
 
   end # run
 
