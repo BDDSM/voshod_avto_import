@@ -133,8 +133,12 @@ module VoshodAvtoImport
 
   def run
 
-    f = ::File.new(::VoshodAvtoImport::FILE_LOCK, ::File::RDWR|::File::CREAT, 0400)
-    return if f.flock(::File::LOCK_EX) === false
+    begin
+      f = ::File.new(::VoshodAvtoImport::FILE_LOCK, ::File::RDWR|::File::CREAT, 0400)
+      return if f.flock(::File::LOCK_EX) === false
+    rescue ::Errno::EACCES
+      return
+    end
 
     begin
       ::VoshodAvtoImport::Manager.run
