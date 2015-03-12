@@ -80,7 +80,7 @@ module VoshodAvtoImport
 
       name:     'Екатеринбург',
       pos:      7,
-      email:    ["ekb@v-avto.ru"],
+      email:    ["dir.ekb@v-avto.ru"],
       translit: "Ekaterinburg"
 
     }
