@@ -18,6 +18,8 @@ module VoshodAvtoImport
       @updated_items    = []
       @updated_catalogs = []
 
+      ::VoshodAvtoImport.clear_log
+
     end # new
 
     def parse

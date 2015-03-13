@@ -193,7 +193,7 @@ module VoshodAvtoImport
     create_logger unless @logger
     @logger.error(msg)
 
-    (@dump_log ||= "") << msg
+    (@dump_log ||= "") << "#{msg}\n"
 
     msg
 
