@@ -44,7 +44,7 @@ module VoshodAvtoImport
 
       name:     'Запчасти ВАЗ',
       pos:      2,
-      email:    ["yana@v-avto.ru", "nadejda@v-avto.ru"],
+      email:    ["vaz@v-avto.ru"],
       translit: "Zapchasti_VAZ"
 
     },
