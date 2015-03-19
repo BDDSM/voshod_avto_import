@@ -124,13 +124,6 @@ module VoshodAvtoImport
 
   end # log_dir
 
-  def wait(v = nil)
-
-    @wait = v.abs if v.is_a?(::Fixnum)
-    @wait || 5 * 60
-
-  end # wait
-
   def run
 
     begin
