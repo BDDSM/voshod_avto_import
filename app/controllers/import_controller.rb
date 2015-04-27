@@ -59,7 +59,19 @@ class ImportController < ApplicationController
   def auth
 
     authenticate_or_request_with_http_basic do |login, password|
-      (login == ::VoshodAvtoImport::login && password == ::VoshodAvtoImport::password)
+
+      puts "[login insetred] #{login}"
+      puts "[login target] #{::VoshodAvtoImport::login}"
+
+      puts "[pass insetred] #{password}"
+      puts "[pass target] #{::VoshodAvtoImport::password}"
+
+      res = (login == ::VoshodAvtoImport::login && password == ::VoshodAvtoImport::password)
+
+      puts "[result] #{res}"
+
+      res
+
     end
 
   end # auth
