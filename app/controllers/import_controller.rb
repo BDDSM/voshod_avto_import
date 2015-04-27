@@ -13,10 +13,10 @@ class ImportController < ApplicationController
         render(text: "success\nimport_1c\n#{rand(9999)}", layout: false) and return
       when 'init'
         render(text: "zip=yes\nfile_limit=99999999999999999", layout: false) and return
-      when 'import'
+      else # 'import'
         render(text: "success", layout: false) and return
-      else
-        render(text: "failure", layout: false) and return
+#      else
+#        render(text: "failure", layout: false) and return
     end
 
   end # index
@@ -59,19 +59,7 @@ class ImportController < ApplicationController
   def auth
 
     authenticate_or_request_with_http_basic do |login, password|
-
-      puts "[login insetred] #{login}"
-      puts "[login target] #{::VoshodAvtoImport::login}"
-
-      puts "[pass insetred] #{password}"
-      puts "[pass target] #{::VoshodAvtoImport::password}"
-
-      res = (login == ::VoshodAvtoImport::login && password == ::VoshodAvtoImport::password)
-
-      puts "[result] #{res}"
-
-      res
-
+      (login == ::VoshodAvtoImport::login && password == ::VoshodAvtoImport::password)
     end
 
   end # auth
