@@ -3,12 +3,10 @@ class ImportController < ApplicationController
 
   unloadable
 
-  # before_filter :auth
+  before_filter :auth
   skip_before_filter :verify_authenticity_token
 
   def index
-
-    puts "request: #{request.inspect}"
 
     case params[:mode]
       when 'checkauth'
