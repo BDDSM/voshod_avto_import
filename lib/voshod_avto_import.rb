@@ -160,16 +160,19 @@ module VoshodAvtoImport
   def backup_file_to_dir(file)
 
     return false if file.nil?
-    return false if ::VoshodAvtoImport::backup_dir.nil?
 
     begin
 
-      dir = Time.now.utc.strftime(::VoshodAvtoImport::backup_dir).gsub(/%[a-z]/, '_')
+      unless ::VoshodAvtoImport::backup_dir.nil?
 
-      ::FileUtils.mkdir_p(dir, mode: 0755) unless ::FileTest.directory?(dir)
-      return false unless ::FileTest.directory?(dir)
+        dir = Time.now.utc.strftime(::VoshodAvtoImport::backup_dir).gsub(/%[a-z]/, '_')
 
-      ::FileUtils.mv(file, dir)
+        ::FileUtils.mkdir_p(dir, mode: 0755) unless ::FileTest.directory?(dir)
+        return false unless ::FileTest.directory?(dir)
+
+        ::FileUtils.mv(file, dir)
+
+      end # unless
 
     rescue SystemCallError
       log "Не могу переместить файл `#{::File.basename(file)}` в `#{dir}`"
