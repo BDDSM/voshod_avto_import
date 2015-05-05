@@ -16,72 +16,56 @@ module VoshodAvtoImport
     1 => {
 
       name:     'Аксессуары и электроника',
-      pos:      0,
-      email:    ["aks@v-avto.ru"],
-      translit: "Aksessuary_i_electronika"
+      email:    ["aks@v-avto.ru"]
 
     },
 
     2 => {
 
       name:     'Автохимия, масла',
-      pos:      4,
-      email:    ["him@v-avto.ru"],
-      translit: "Avtokhimiya_masla"
+      email:    ["him@v-avto.ru"]
 
     },
 
     3 => {
 
       name:     'Инструмент',
-      pos:      1,
-      email:    ["instr@v-avto.ru"],
-      translit: "Instrument"
+      email:    ["instr@v-avto.ru"]
 
     },
 
     4 => {
 
       name:     'Запчасти ВАЗ',
-      pos:      2,
-      email:    ["vaz@v-avto.ru"],
-      translit: "Zapchasti_VAZ"
+      email:    ["vaz@v-avto.ru"]
 
     },
 
     5 => {
 
-      name:     'Запчасти ГАЗ, аккумуляторы',
-      pos:      3,
-      email:    ["gaz@v-avto.ru"],
-      translit: "Zapchasti_GAZ_akkumulyatory"
+      name:     'Запчасти ГАЗ, аккумуляторы'
+      email:    ["gaz@v-avto.ru"]
 
     },
 
     6 => {
 
-      name:     'Запчасти для иномарок',
-      pos:      5,
-      email:    ["inomarki@v-avto.ru"],
-      translit: "Zapchasti_dlya_inomarok"
+      name:     'Запчасти для иномарок'
+      email:    ["inomarki@v-avto.ru"]
 
     },
 
     7 => {
 
       name:     'Магнитогорск',
-      pos:      6,
-      email:    ["mag@v-avto.ru"],
-      translit: "Magnitogorsk"
+      email:    ["mag@v-avto.ru"]
 
     },
 
     8 => {
 
       name:     'Екатеринбург',
-      pos:      7,
-      email:    ["dir.ekb@v-avto.ru"],
-      translit: "Ekaterinburg"
+      email:    ["dir.ekb@v-avto.ru"]
 
     }
 
@@ -186,10 +170,10 @@ module VoshodAvtoImport
 
   def log(msg = "")
 
-    create_logger unless @logger
-    @logger.error(msg)
-
     (@dump_log ||= "") << "#{msg}\n"
+
+    create_logger       unless @logger
+    @logger.error(msg)  if @logger
 
     msg
 

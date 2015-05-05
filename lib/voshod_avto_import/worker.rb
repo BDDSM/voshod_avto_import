@@ -108,7 +108,6 @@ module VoshodAvtoImport
 
       end # if
 
-      catalog.pos             = rc[:pos] || 0
       catalog.name            = rc[:name]
       catalog.dep_code        = rc[:dep_code]
       catalog.key_1c_parent   = rc[:key_1c_parent]
@@ -250,8 +249,9 @@ module VoshodAvtoImport
       ::Item.with(safe: true).where(:catalog_1c => nil).delete_all
 
       # Удаляем товары без отделов
-      ::Item.with(safe: true).where(:department => nil).delete_all
+      ::Item.with(safe: true).where(:department.in => [0, nil]).delete_all
 
+      # Корректируем номера отделов
       deps = @dep_codes.delete_if{ |el| el.nil? }.to_a
 
       # Если обновление полное то, удаляем прежние данные:

@@ -174,8 +174,7 @@ module VoshodAvtoImport
         key_1c:         "ekb",
         key_1c_parent:  nil,
         dep_code:       DEP_CODE,
-        name:           "Екатеринбург",
-        pos:            0
+        name:           "Екатеринбург"
 
       }
 

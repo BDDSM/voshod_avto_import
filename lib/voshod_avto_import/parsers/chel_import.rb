@@ -7,10 +7,12 @@ module VoshodAvtoImport
 
       'НОМЕНКЛАТУРА АКСЕССУАРОВ'  => 1,
       'Аксессуары'                => 1,
+      'Автоаксессуары'            => 1,
 
       'НОМЕНКЛАТУРА АВТОХИМИИ'    => 2,
       'Автохимия'                 => 2,
       'Химия'                     => 2,
+      'Автохимия и масло'         => 2,
 
       'Инструменты'               => 3,
       'Инструмент'                => 3,
@@ -19,12 +21,16 @@ module VoshodAvtoImport
       'АВТО_ВАЗ'                  => 4,
       'НОМЕНКЛАТУРА ВАЗ'          => 4,
       'ВАЗ'                       => 4,
+      'Запчасти ВАЗ'              => 4,
 
       'НОМЕНКЛАТУРА ГАЗ'          => 5,
       'ГАЗ'                       => 5,
+      'Аккумуляторы'              => 5,
+      'Запчасти ГАЗ'              => 5,
 
       'НОМЕНКЛАТУРА ИНОМАРОК'     => 6,
-      'Иномарки'                  => 6
+      'Иномарки'                  => 6,
+      'Запчасти иномарки'         => 6
 
     }.freeze
 
@@ -214,8 +220,7 @@ module VoshodAvtoImport
         key_1c:         "chel",
         key_1c_parent:  nil,
         dep_code:       0,
-        name:           "Челябинск",
-        pos:            2
+        name:           "Челябинск"
 
       }
 
@@ -254,12 +259,7 @@ module VoshodAvtoImport
       @start_parse_catalog = false
 
       if @catalog_level == 1
-
         @catalog_dep_code = CATALOGS_DEPS[@catalog[:name]]
-        deps              = ::VoshodAvtoImport::DEPS[@catalog_dep_code] || {}
-        @catalog[:name]   = deps[:name] || 'Неизвестно'
-        @catalog[:pos]    = deps[:pos]
-
       end
 
       @catalog[:dep_code]       = @catalog_dep_code

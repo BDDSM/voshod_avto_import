@@ -174,8 +174,7 @@ module VoshodAvtoImport
         key_1c:         "mag",
         key_1c_parent:  nil,
         dep_code:       DEP_CODE,
-        name:           "Магнитогорск",
-        pos:            2
+        name:           "Магнитогорск"
 
       }
 
