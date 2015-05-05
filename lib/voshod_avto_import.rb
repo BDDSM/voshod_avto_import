@@ -43,14 +43,14 @@ module VoshodAvtoImport
 
     5 => {
 
-      name:     'Запчасти ГАЗ, аккумуляторы'
+      name:     'Запчасти ГАЗ, аккумуляторы',
       email:    ["gaz@v-avto.ru"]
 
     },
 
     6 => {
 
-      name:     'Запчасти для иномарок'
+      name:     'Запчасти для иномарок',
       email:    ["inomarki@v-avto.ru"]
 
     },
