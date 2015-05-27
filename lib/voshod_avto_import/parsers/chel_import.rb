@@ -3,6 +3,8 @@ module VoshodAvtoImport
 
   class ChelImportParser < ::VoshodAvtoImport::BaseParser
 
+    CITY_CODE = 1.freeze # Челябинск
+
     CATALOGS_DEPS = {
 
       'НОМЕНКЛАТУРА АКСЕССУАРОВ'  => 1,
@@ -220,7 +222,8 @@ module VoshodAvtoImport
         key_1c:         "chel",
         key_1c_parent:  nil,
         dep_code:       0,
-        name:           "Челябинск"
+        name:           "Челябинск",
+        city_code:      CITY_CODE
 
       }
 
@@ -265,6 +268,7 @@ module VoshodAvtoImport
       @catalog[:dep_code]       = @catalog_dep_code
       @catalog[:key_1c]         = "#{@catalog_dep_code}-#{@catalog[:id]}"
       @catalog[:key_1c_parent]  = @catalog_parent_id[@catalog_level-1] || "chel"
+      @catalog[:city_code]      = CITY_CODE
 
       @catalogs_item_map[@catalog[:id]] = @catalog[:dep_code]
 
@@ -325,7 +329,8 @@ module VoshodAvtoImport
 
       @start_parse_item = true
       @item             = {
-        price: 0
+        city_code:  CITY_CODE,
+        price:      0
       }
 
     end # start_parse_item

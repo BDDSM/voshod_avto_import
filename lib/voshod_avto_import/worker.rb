@@ -108,6 +108,7 @@ module VoshodAvtoImport
 
       end # if
 
+      catalog.city_code       = rc[:city_code] || 0
       catalog.name            = rc[:name]
       catalog.dep_code        = rc[:dep_code]
       catalog.key_1c_parent   = rc[:key_1c_parent]
@@ -155,6 +156,7 @@ module VoshodAvtoImport
       item.dep_key    = "#{rc[:dep_code]}-#{rc[:mog]}"
       item.vendor     = rc[:vendor]                     unless rc[:vendor].blank?
       item.updated_at = ::Time.now.utc
+      item.city_code  = rc[:city_code] || 0
 
       new_record      = item.new_record?
 
@@ -190,6 +192,7 @@ module VoshodAvtoImport
         item.price  = price
       end
 
+      item.city_code  = rc[:city_code] || 0
       item.count      = rc[:count] || 0
       item.name       = rc[:name]
       item.mog        = rc[:mog]

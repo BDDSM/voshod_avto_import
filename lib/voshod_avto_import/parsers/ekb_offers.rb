@@ -3,7 +3,8 @@ module VoshodAvtoImport
 
   class EkbOffersParser < ::VoshodAvtoImport::BaseParser
 
-    DEP_CODE = 8.freeze
+    CITY_CODE = 2.freeze # Екатеринбург
+    DEP_CODE  = 8.freeze
 
     def initialize(saver)
 
@@ -173,7 +174,10 @@ module VoshodAvtoImport
       return if @start_parse_items != true
 
       @start_parse_item = true
-      @item             = { price: 0 }
+      @item             = {
+        city_code:  CITY_CODE,
+        price:      0
+      }
 
     end # start_parse_item
 

@@ -3,6 +3,8 @@ module VoshodAvtoImport
 
   class ChelOffersParser < ::VoshodAvtoImport::BaseParser
 
+    CITY_CODE = 1.freeze # Челябинск
+
     ITEMS_DEPS = {
 
       'Аксессуары'  => 1,
@@ -191,7 +193,10 @@ module VoshodAvtoImport
       return if @start_parse_items != true
 
       @start_parse_item = true
-      @item             = { price: 0 }
+      @item             = {
+        city_code:  CITY_CODE,
+        price:      0
+      }
 
     end # start_parse_item
 

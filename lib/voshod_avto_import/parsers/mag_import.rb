@@ -3,7 +3,8 @@ module VoshodAvtoImport
 
   class MagImportParser < ::VoshodAvtoImport::BaseParser
 
-    DEP_CODE = 7.freeze
+    CITY_CODE = 3.freeze # Магнитогорск
+    DEP_CODE  = 7.freeze
 
     def initialize(saver)
 
@@ -174,7 +175,8 @@ module VoshodAvtoImport
         key_1c:         "mag",
         key_1c_parent:  nil,
         dep_code:       DEP_CODE,
-        name:           "Магнитогорск"
+        name:           "Магнитогорск",
+        city_code:      CITY_CODE
 
       }
 
@@ -202,7 +204,8 @@ module VoshodAvtoImport
 
       @start_parse_catalog = true
       @catalog             = {
-        dep_code: DEP_CODE
+        dep_code:   DEP_CODE,
+        city_code:  CITY_CODE
       }
 
     end # start_parse_catalog
@@ -215,6 +218,7 @@ module VoshodAvtoImport
 
       @catalog[:key_1c]         = "#{DEP_CODE}-#{@catalog[:id]}"
       @catalog[:key_1c_parent]  = @catalog_parent_id[@catalog_level-1] || "mag"
+      @catalog[:city_code]      = CITY_CODE
 
       @catalogs_array << @catalog if catalog_valid?
 
@@ -273,8 +277,9 @@ module VoshodAvtoImport
 
       @start_parse_item = true
       @item             = {
-        price:    0,
-        dep_code: DEP_CODE
+        price:      0,
+        dep_code:   DEP_CODE,
+        city_code:  CITY_CODE
       }
 
     end # start_parse_item

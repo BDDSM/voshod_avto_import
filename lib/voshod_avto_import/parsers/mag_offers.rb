@@ -3,7 +3,8 @@ module VoshodAvtoImport
 
   class MagOffersParser < ::VoshodAvtoImport::BaseParser
 
-    DEP_CODE = 7.freeze
+    CITY_CODE = 3.freeze # Магнитогорск
+    DEP_CODE  = 7.freeze
 
     def initialize(saver)
 
@@ -174,7 +175,10 @@ module VoshodAvtoImport
       return if @start_parse_items != true
 
       @start_parse_item = true
-      @item             = { price: 0 }
+      @item             = {
+        city_code:  CITY_CODE,
+        price:      0
+      }
 
     end # start_parse_item
 
