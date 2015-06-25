@@ -169,19 +169,6 @@ module VoshodAvtoImport
       @start_parse_catalogs = true
       reset_datas!
 
-      @catalogs_array << {
-
-        id:             "ekb",
-        key_1c:         "ekb",
-        key_1c_parent:  nil,
-        dep_code:       DEP_CODE,
-        name:           "Екатеринбург",
-        city_code:      CITY_CODE
-
-      }
-
-      @catalog_parent_id[0] = "ekb"
-
     end # start_parse_catalogs
 
     def stop_parse_catalogs
@@ -217,7 +204,7 @@ module VoshodAvtoImport
       @start_parse_catalog = false
 
       @catalog[:key_1c]         = "#{DEP_CODE}-#{@catalog[:id]}"
-      @catalog[:key_1c_parent]  = @catalog_parent_id[@catalog_level-1] || "ekb"
+      @catalog[:key_1c_parent]  = @catalog_parent_id[@catalog_level-1]
       @catalog[:city_code]      = CITY_CODE
 
       @catalogs_array << @catalog if catalog_valid?
