@@ -1,0 +1,21 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+  <head>
+    <meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+  </head>
+  <body style="font: normal 14px/25px Tahoma, Arial, Verdana, Sans-serif;">
+
+      <p>Дата выгрузки: <%= @time %></p>
+      <p>Обработаны отделы: <%= @departments.join(',') %></p>
+
+      <p style="border: 1px dotted #000; padding:10px; margin-top: 10px;">
+        <%= @log_dump.html_safe %>
+      </p>
+
+      <p style="padding-top: 20px;margin-top: 50px;">
+        С уважением,<br/>
+        коллектив «Восход-Авто»
+      </p>
+
+  </body>
+</html>
