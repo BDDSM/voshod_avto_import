@@ -37,7 +37,7 @@ module VoshodAvtoImport
     4 => {
 
       name:     'Запчасти ВАЗ',
-      email:    ["vaz@v-avto.ru"]
+      email:    ["voshod@v-avto.ru"]
 
     },
 
